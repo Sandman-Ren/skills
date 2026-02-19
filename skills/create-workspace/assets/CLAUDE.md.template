@@ -8,6 +8,8 @@ This is a multi-repo workspace. Here's how it's organized:
 
 ```
 ├── workspace.yaml      # manifest — source of truth for repos, worktrees, deps
+├── .claude/
+│   └── settings.json   # agent permissions (edit to customize)
 ├── repositories/       # repositories we're actively working on
 ├── docs/               # cross-repo design documents and specs
 ├── deps/               # dependency repos for reference and analysis
@@ -34,6 +36,14 @@ This is a multi-repo workspace. Here's how it's organized:
 - **`tasks/`** — For task descriptions, assignments, and status tracking between agents.
 - **`sketch/`** — Free-form scratch space. Anything goes. It is gitignored and ephemeral.
 - **`deps/`** — Read-only reference. Clone and analyze, but do not commit changes here unless explicitly coordinating upstream fixes.
+
+### Permissions
+- Agent permissions are configured in `.claude/settings.json`.
+- Common read-only and build/test commands are pre-approved — no manual confirmation needed.
+- Git write operations (commit, push, merge) require confirmation.
+- Dangerous operations (rm -rf, sudo, force push) are blocked.
+- `.env` and `.env.local` files are blocked from reading. `.env.example` is allowed.
+- Edit `.claude/settings.json` to add project-specific rules.
 
 ### Agent Coordination
 - Before starting work, check `tasks/` for assignments.

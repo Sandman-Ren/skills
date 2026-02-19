@@ -21,6 +21,8 @@ parallel work by multiple agents and human developers.
 ├── workspace.yaml              # manifest: repos, worktrees, deps, metadata
 ├── CLAUDE.md                   # project-wide agent context and conventions
 ├── .gitignore                  # ignores sketch/ directory
+├── .claude/
+│   └── settings.json           # permissions for coding agents
 ├── repositories/
 │   └── {repoName}/
 │       ├── main/               # regular clone at default branch (worktree parent)
@@ -112,7 +114,25 @@ Write a `.gitignore` at the workspace root:
 sketch/
 ```
 
-**Step 8: Confirm completion.** Summarize what was created:
+**Step 8: Set up agent permissions.**
+
+Create `.claude/settings.json` at the workspace root using the template from `assets/settings.json.template`. This file configures permissions so that coding agents can perform common development tasks without requiring manual approval for every command, while still blocking dangerous operations.
+
+```bash
+mkdir -p {workspace-name}/.claude
+```
+
+Copy the template as-is. The defaults are designed to be safe for multi-repo development:
+
+- **Allow (no prompt):** Read-only tools, git read ops, git worktree management, build/test/lint commands for common package managers, file exploration, version checks.
+- **Ask (prompt once):** Git write ops (commit, push, pull, merge, rebase), package installs, docker operations.
+- **Deny (always blocked):** `rm -rf`, `sudo`, force pushes, `git reset --hard`, reading `.env`/`.env.local`/`.env.*.local`, secrets, SSH keys, AWS credentials, PEM/key files.
+
+Note: `.env.example` and `.env.template` files are intentionally **not** blocked — agents need to read these to understand the environment variable setup.
+
+This file is generated once. Users can edit it afterwards to add project-specific rules.
+
+**Step 9: Confirm completion.** Summarize what was created:
 - Number of repositories cloned
 - Number of worktrees created
 - Number of dependencies cloned
