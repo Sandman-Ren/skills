@@ -44,32 +44,50 @@ When the user asks to create a workspace, follow these steps:
 **Step 1: Gather information.** Ask the user for:
 - Workspace name (will be the root directory name)
 - A short description of the project/task
-- Repository URLs to include (and which worktrees/branches to create)
-- Dependency repository URLs (if any)
+- Where to create the workspace. Offer the current working directory as the default option, and let the user specify a different path. The workspace will be created as a subdirectory at the chosen location (i.e., `{chosen-path}/{workspace-name}/`).
+- Repositories to include (and which worktrees/branches to create). Accept any of these formats:
+  - HTTPS URL: `https://github.com/user/repo.git`
+  - SSH URL: `git@github.com:user/repo.git`
+  - GitHub shorthand: `user/repo` or `Username/repoName`
+- Dependency repositories (if any), in the same formats above.
 
 If the user provides a `workspace.yaml` file or its contents, parse it directly instead of asking.
+
+**Resolving repository references:**
+
+When the user provides a GitHub shorthand (`user/repo`) instead of a full URL:
+
+1. **Try `gh` CLI first:** Run `gh repo view user/repo --json url -q .url` to get the HTTPS URL. This works if the user has `gh` installed and authenticated.
+2. **Try GitHub MCP:** If `gh` CLI is not available, use the GitHub MCP `get_file_contents` or `search_repositories` tool to verify the repository exists and get its URL.
+3. **Fallback — web search:** If neither `gh` CLI nor GitHub MCP is available, use web search to find the repository URL, then ask the user to confirm before cloning.
+
+Once resolved, clone using the full URL. Store the resolved URL in `workspace.yaml`.
 
 **Step 2: Create the directory structure.**
 
 ```bash
-mkdir -p {workspace-name}/{repositories,docs,deps,tasks,sketch}
+mkdir -p {path}/{workspace-name}/{repositories,docs,deps,tasks,sketch}
 ```
+
+Where `{path}` is the location chosen in Step 1 (defaults to the current working directory).
 
 **Step 3: Generate the workspace.yaml manifest.**
 
 Use the template from `assets/workspace.yaml.template` as a reference. The manifest should
 capture all repositories, their worktrees, and dependencies. Write it to `{workspace-name}/workspace.yaml`.
 
-**Step 4: Clone repositories and create worktrees.**
+**Step 4: Resolve and clone repositories.**
 
-For each repository in the manifest:
+First, resolve any GitHub shorthand references to full URLs (see "Resolving repository references" above).
+
+Then, for each repository in the manifest:
 
 ```bash
 # Clone the repository into the main/ directory
-git clone {url} {workspace-name}/repositories/{repoName}/main
+git clone {resolved-url} {workspace-root}/repositories/{repoName}/main
 
 # For each worktree, create a branch and worktree
-cd {workspace-name}/repositories/{repoName}/main
+cd {workspace-root}/repositories/{repoName}/main
 git worktree add ../worktrees/{worktreeName} -b {branchName}
 ```
 
