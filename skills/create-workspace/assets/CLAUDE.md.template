@@ -1,0 +1,42 @@
+# {workspace-name}
+
+{description}
+
+## Workspace Structure
+
+This is a multi-repo workspace. Here's how it's organized:
+
+```
+├── workspace.yaml      # manifest — source of truth for repos, worktrees, deps
+├── repositories/       # repositories we're actively working on
+├── docs/               # cross-repo design documents and specs
+├── deps/               # dependency repos for reference and analysis
+├── tasks/              # task assignments and coordination files
+└── sketch/             # scratch space (gitignored, ephemeral)
+```
+
+## Repositories
+
+{repository-table}
+
+## Dependencies
+
+{dependency-table}
+
+## Conventions
+
+### Worktree Rules
+- **Do NOT switch branches in `repositories/{repoName}/main/`** — it is the worktree parent and anchors all other worktrees. Only work in directories under `worktrees/`.
+- Each worktree is an independent working directory. Multiple agents can work on different worktrees simultaneously.
+
+### Directory Usage
+- **`docs/`** — For design decisions, specs, and ADRs that apply across repos. These outlive individual tasks.
+- **`tasks/`** — For task descriptions, assignments, and status tracking between agents.
+- **`sketch/`** — Free-form scratch space. Anything goes. It is gitignored and ephemeral.
+- **`deps/`** — Read-only reference. Clone and analyze, but do not commit changes here unless explicitly coordinating upstream fixes.
+
+### Agent Coordination
+- Before starting work, check `tasks/` for assignments.
+- Read `docs/` for context on design decisions.
+- Use `sketch/` for prototyping before committing to a worktree.
+- When finishing a task, update the relevant file in `tasks/`.

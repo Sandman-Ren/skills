@@ -1,0 +1,26 @@
+# Workspace Manifest
+# This file declares the repositories, worktrees, and dependencies
+# that make up this workspace.
+
+name: {workspace-name}
+description: "{description}"
+
+# Repositories to work on
+repositories:
+  - name: {repoName}
+    url: {gitUrl}
+    # default-branch is optional, defaults to the remote's HEAD (usually main/master)
+    # default-branch: main
+    worktrees:
+      - name: {worktreeName}
+        branch: {branchName}
+        description: "{what this worktree is for}"
+
+# Dependency repositories for reference and analysis
+# These are full clones — not shallow — to support deep analysis
+deps:
+  - name: {depName}
+    url: {gitUrl}
+    # ref is optional — omit to use the default branch
+    # ref: v1.0.0
+    description: "{why this dependency is included}"
