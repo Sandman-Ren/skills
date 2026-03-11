@@ -8,10 +8,29 @@ Agent skills for Claude Code and other coding agents.
 npx skills add Sandman-Ren/skills
 ```
 
-Or install a specific skill:
+Or install a specific skill globally:
 
 ```bash
 npx skills add Sandman-Ren/skills --skill create-workspace -g
+```
+
+## Updating
+
+```bash
+npx skills update
+```
+
+Or check for available updates first:
+
+```bash
+npx skills check
+```
+
+## Managing Skills
+
+```bash
+npx skills list       # view installed skills
+npx skills remove     # uninstall a skill
 ```
 
 ## Available Skills
@@ -26,6 +45,8 @@ Create and manage multi-repo development workspaces for complex tasks involving 
 - Generates a `workspace.yaml` manifest as the source of truth
 - Creates a root `CLAUDE.md` with project context and agent conventions
 - Supports adding/removing repos, worktrees, and dependencies to existing workspaces
+- **Modular permission system** — add/remove permission modules for GitHub, Node.js, Python, Rust, Go, Docker, Playwright, Context7, and more
+- Preview permissions before writing, add custom rules, all project-scoped
 
 **Workspace structure:**
 
@@ -34,6 +55,8 @@ my-workspace/
 ├── workspace.yaml              # manifest: repos, worktrees, deps
 ├── CLAUDE.md                   # project-wide agent context
 ├── .gitignore                  # ignores sketch/
+├── .claude/
+│   └── settings.json           # modular agent permissions
 ├── repositories/
 │   └── {repoName}/
 │       ├── main/               # regular clone (worktree parent)
@@ -46,7 +69,22 @@ my-workspace/
 └── sketch/                     # .gitignored agent scratch space
 ```
 
-**Triggers:** "create a workspace", "set up a multi-repo project", "add a repo to the workspace", "create a worktree"
+**Permission modules:**
+
+| Module | What it covers |
+|--------|---------------|
+| `_base` | Read, Glob, Grep, git read-only, utilities (always included) |
+| `_security` | Deny rules for destructive ops and sensitive files (always included) |
+| `github` | GitHub MCP tools + `gh` CLI |
+| `context7` | Library documentation lookup |
+| `nodejs` | npm, yarn, pnpm, bun |
+| `python` | pytest, mypy, ruff, pip, poetry, uv |
+| `rust` | cargo build, test, clippy |
+| `go` | go test, build, vet, mod |
+| `docker` | Docker + Compose inspection and lifecycle |
+| `playwright` | Browser automation and testing |
+
+**Triggers:** "create a workspace", "set up a multi-repo project", "add a repo to the workspace", "create a worktree", "add github permissions", "set up workspace permissions"
 
 ## License
 
