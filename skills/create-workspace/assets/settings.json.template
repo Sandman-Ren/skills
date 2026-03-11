@@ -1,5 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_modules": ["_base", "_security"],
   "permissions": {
     "allow": [
       "Read",
@@ -21,9 +22,16 @@
       "Bash(git worktree list)",
       "Bash(git worktree add *)",
       "Bash(git worktree remove *)",
+      "Bash(git worktree prune)",
       "Bash(git ls-files *)",
       "Bash(git ls-tree *)",
       "Bash(git rev-parse *)",
+      "Bash(git remote *)",
+      "Bash(git describe *)",
+      "Bash(git shortlog *)",
+      "Bash(git blame *)",
+      "Bash(git tag)",
+      "Bash(git tag -l *)",
 
       "Bash(ls)",
       "Bash(ls *)",
@@ -31,30 +39,12 @@
       "Bash(pwd)",
       "Bash(wc *)",
       "Bash(which *)",
-      "Bash(* --version)",
-      "Bash(* --help)",
-
-      "Bash(npm run *)",
-      "Bash(npm test *)",
-      "Bash(npx prettier *)",
-      "Bash(npx eslint *)",
-      "Bash(npx tsc *)",
-      "Bash(yarn run *)",
-      "Bash(yarn test *)",
-      "Bash(pnpm run *)",
-      "Bash(pnpm test *)",
-      "Bash(bun run *)",
-      "Bash(bun test *)",
+      "Bash(where *)",
+      "Bash(whoami)",
+      "Bash(hostname)",
       "Bash(make *)",
-      "Bash(go test *)",
-      "Bash(go build *)",
-      "Bash(go vet *)",
-      "Bash(cargo test *)",
-      "Bash(cargo build *)",
-      "Bash(cargo check *)",
-      "Bash(cargo clippy *)",
-      "Bash(python -m pytest *)",
-      "Bash(python -m mypy *)"
+      "Bash(* --version)",
+      "Bash(* --help)"
     ],
 
     "ask": [
@@ -67,45 +57,49 @@
       "Bash(git checkout *)",
       "Bash(git switch *)",
       "Bash(git stash *)",
+      "Bash(git cherry-pick *)",
+      "Bash(git fetch *)",
       "Bash(git reset *)",
-
-      "Bash(npm install *)",
-      "Bash(npm ci)",
-      "Bash(yarn install *)",
-      "Bash(yarn add *)",
-      "Bash(pnpm install *)",
-      "Bash(pnpm add *)",
-      "Bash(bun install *)",
-      "Bash(bun add *)",
-      "Bash(pip install *)",
-      "Bash(go mod *)",
-      "Bash(cargo add *)",
-
-      "Bash(docker *)",
-      "Bash(docker compose *)"
+      "Bash(git tag *)"
     ],
 
     "deny": [
       "Bash(rm -rf *)",
+      "Bash(rm -r *)",
       "Bash(* sudo *)",
+      "Bash(sudo *)",
+      "Bash(su *)",
+      "Bash(runas *)",
       "Bash(dd *)",
       "Bash(mkfs *)",
+      "Bash(fdisk *)",
+      "Bash(format *)",
       "Bash(chmod 777 *)",
+      "Bash(chmod -R 777 *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
       "Bash(git reset --hard *)",
       "Bash(git clean -f *)",
+      "Bash(git clean -fd *)",
+      "Bash(git clean -fx *)",
 
       "Read(./**/.env)",
       "Read(./**/.env.local)",
       "Read(./**/.env.*.local)",
-      "Read(./secrets/**)",
+      "Read(./**/secrets/**)",
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Read(~/.kube/**)",
+      "Read(~/.config/gcloud/**)",
+      "Read(~/.azure/**)",
       "Read(./**/*credentials*)",
       "Read(./**/*.pem)",
-      "Read(./**/*.key)"
+      "Read(./**/*.key)",
+      "Read(./**/*.p12)",
+      "Read(./**/*.pfx)",
+      "Read(./**/.htpasswd)",
+      "Read(~/.netrc)"
     ]
   }
 }

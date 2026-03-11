@@ -2,11 +2,13 @@
 name: create-workspace
 description: >
   Create and manage multi-repo development workspaces for complex tasks involving
-  multiple repositories, dependencies, and parallel agent work. Use when the user
-  wants to set up a workspace, add repos/worktrees/deps to an existing workspace,
+  multiple repositories, dependencies, and parallel agent work. Also manages modular
+  agent permissions — add/remove/preview permission modules for GitHub, Docker, Node.js,
+  Python, Rust, Go, Playwright, and more. Use when the user wants to set up a workspace,
+  add repos/worktrees/deps to an existing workspace, manage workspace permissions,
   or initialize a project that spans multiple repositories. Triggers on requests like
   "create a workspace", "set up a multi-repo project", "add a repo to the workspace",
-  or "create a worktree".
+  "create a worktree", "add github permissions", or "set up workspace permissions".
 ---
 
 # Create Workspace
@@ -134,21 +136,106 @@ sketch/
 
 **Step 8: Set up agent permissions.**
 
-Create `.claude/settings.json` at the workspace root using the template from `assets/settings.json.template`. This file configures permissions so that coding agents can perform common development tasks without requiring manual approval for every command, while still blocking dangerous operations.
+Create `.claude/settings.json` at the workspace root using the modular permission system.
+Permissions are built from composable modules in `assets/permissions/`.
 
 ```bash
 mkdir -p {workspace-name}/.claude
 ```
 
-Copy the template as-is. The defaults are designed to be safe for multi-repo development:
-
-- **Allow (no prompt):** Read-only tools, git read ops, git worktree management, build/test/lint commands for common package managers, file exploration, version checks.
-- **Ask (prompt once):** Git write ops (commit, push, pull, merge, rebase), package installs, docker operations.
-- **Deny (always blocked):** `rm -rf`, `sudo`, force pushes, `git reset --hard`, reading `.env`/`.env.local`/`.env.*.local`, secrets, SSH keys, AWS credentials, PEM/key files.
+**8a. Start with required modules.** Two modules are always included:
+- `_base` — Read, Glob, Grep, WebSearch, git read-only, worktree management, general utilities.
+- `_security` — Deny rules for destructive operations (`rm -rf`, `sudo`, force push, `git reset --hard`) and sensitive file access (`.env`, SSH keys, cloud credentials, PEM/key files).
 
 Note: `.env.example` and `.env.template` files are intentionally **not** blocked — agents need to read these to understand the environment variable setup.
 
-This file is generated once. Users can edit it afterwards to add project-specific rules.
+**8b. Auto-detect optional modules.** Scan the cloned repositories for files that indicate a tech stack.
+Use the `detect` field in each module file to match. Modules with `"always_suggest": true` are
+always included in the suggestion list regardless of detection signals. Modules with an empty
+`detect` array and no `always_suggest` flag are not auto-detected (they must be manually selected).
+
+| Module | Detection signals |
+|--------|-------------------|
+| `github` | `.git` directory (any git repo) |
+| `context7` | _(always suggest — has `always_suggest: true` in module file)_ |
+| `nodejs` | `package.json` |
+| `python` | `requirements.txt`, `pyproject.toml`, `setup.py`, `setup.cfg`, `Pipfile` |
+| `rust` | `Cargo.toml` |
+| `go` | `go.mod` |
+| `docker` | `Dockerfile`, `docker-compose.yaml`, `docker-compose.yml`, `compose.yaml`, `compose.yml` |
+| `playwright` | `playwright.config.ts`, `playwright.config.js` |
+
+**8c. Present the selection to the user.** Show which modules were auto-detected and let them adjust:
+
+> I detected the following permission modules based on your repositories:
+> - [x] `github` — GitHub MCP tools and gh CLI
+> - [x] `nodejs` — npm/yarn/pnpm/bun build, test, lint, install
+> - [ ] `python` — pytest, mypy, ruff, pip, poetry, uv
+> - [ ] `rust` — cargo build, test, clippy, add
+> - [ ] `go` — go test, build, vet, mod
+> - [x] `docker` — Docker inspection, lifecycle, compose
+> - [ ] `playwright` — browser automation and inspection
+> - [x] `context7` — library documentation lookup
+>
+> Would you like to add, remove, or adjust any of these?
+
+Wait for the user to confirm or adjust before proceeding.
+
+**8d. Ask about custom permissions.** After module selection, ask:
+
+> Would you like to add any custom permission rules? You can specify:
+> - Tools or commands to **auto-allow** (e.g., `Bash(terraform plan *)`)
+> - Tools or commands to **require confirmation** (e.g., `Bash(terraform apply *)`)
+> - Tools or commands to **always block** (e.g., `Bash(terraform destroy *)`)
+>
+> Or skip this step if the modules above cover your needs.
+
+If the user provides custom rules, validate the syntax (must follow Claude Code permission format: `Tool`, `Tool(specifier)`, or `Tool(glob*pattern)`) and add them to the appropriate tier.
+
+**8e. Preview the merged permissions.** Before writing, show the user a summary of the final configuration:
+
+> **Permission preview** (modules: `_base`, `_security`, `github`, `nodejs`, `docker`, `context7`):
+>
+> | Tier | Count | Examples |
+> |------|-------|---------|
+> | Allow | _N_ | `Read`, `Bash(git log *)`, `mcp__plugin_github_github__issue_read`, `Bash(npm run *)` |
+> | Ask | _N_ | `Bash(git push *)`, `mcp__plugin_github_github__create_pull_request`, `Bash(npm install *)` |
+> | Deny | _N_ | `Bash(rm -rf *)`, `Bash(git push --force *)`, `Read(./**/.env)` |
+
+Replace `_N_` with the actual deduplicated counts computed from the merged module files.
+>
+> _Full JSON will be written to `.claude/settings.json`._
+> Does this look good?
+
+Wait for the user to confirm. If they want changes, loop back to 8c or 8d.
+
+**8f. Write the settings file.** Merge all selected modules:
+1. Read each selected module JSON from `assets/permissions/`.
+2. Union all `allow` arrays, then all `ask` arrays, then all `deny` arrays.
+3. Deduplicate each array (preserve insertion order).
+4. If the user provided custom rules, append them to the appropriate arrays.
+5. Write the merged result as `.claude/settings.json`:
+
+```json
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [ ... ],
+    "ask": [ ... ],
+    "deny": [ ... ]
+  }
+}
+```
+
+**Important:** Record which modules were included by adding a top-level `_modules` key to the settings file. This key is ignored by Claude Code but allows the skill to know what's active for future additions/removals:
+
+```json
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_modules": ["_base", "_security", "github", "nodejs", "docker", "context7"],
+  "permissions": { ... }
+}
+```
 
 **Step 9: Confirm completion.** Summarize what was created:
 - Number of repositories cloned
@@ -202,6 +289,113 @@ When the user asks to remove a worktree:
 1. Run `git worktree remove` from the main clone
 2. Update `workspace.yaml`
 
+### 7. Manage Workspace Permissions
+
+A standalone workflow for adding, removing, previewing, or customizing permission modules
+in an existing workspace. This operates on the `.claude/settings.json` file at the workspace root.
+
+**Triggers:** "add permissions", "set up github permissions", "add docker permissions to workspace",
+"show workspace permissions", "remove python permissions", "add custom permissions".
+
+#### 7a. Add Permission Modules
+
+When the user asks to add permissions (e.g., "add github and docker permissions"):
+
+1. Read the existing `.claude/settings.json` at the workspace root.
+2. Check the `_modules` array to see what's already active.
+3. Read the requested module JSON files from `assets/permissions/`.
+4. Show a **preview** of what will be added:
+
+> **Adding modules: `github`, `docker`**
+> Already active: `_base`, `_security`, `nodejs`
+>
+> New rules being added:
+> | Tier | New rules | Examples |
+> |------|-----------|---------|
+> | Allow | +34 | `mcp__plugin_github_github__issue_read`, `Bash(docker ps *)` |
+> | Ask | +37 | `mcp__plugin_github_github__create_pull_request`, `Bash(docker build *)` |
+> | Deny | +3 | `Bash(docker system prune *)` |
+>
+> Proceed?
+
+5. On confirmation, merge the new module rules into the existing arrays (deduplicate).
+6. Update the `_modules` array.
+7. Write back `.claude/settings.json`.
+
+#### 7b. Remove Permission Modules
+
+When the user asks to remove permissions (e.g., "remove docker permissions"):
+
+1. Read `.claude/settings.json` and the `_modules` array.
+2. Verify the module is active. If not, inform the user.
+3. Cannot remove `_base` or `_security` — these are required. Warn the user if they try.
+4. Show a **preview** of what will be removed:
+
+> **Removing module: `docker`**
+> Rules that will be removed: 11 allow, 10 ask, 3 deny
+> Proceed?
+
+5. On confirmation, read the module's JSON file to get its rule list.
+6. For each rule in the module being removed, check all other active modules' JSON files
+   (from the remaining `_modules` array). Only remove the rule from `settings.json` if
+   no other active module also declares the same rule. This prevents breaking shared rules.
+7. Update the `_modules` array (remove the module name).
+8. Write back `.claude/settings.json`.
+
+#### 7c. List Active Permissions
+
+When the user asks about current permissions (e.g., "show workspace permissions", "what permissions are set up"):
+
+1. Read `.claude/settings.json`.
+2. Display the active modules from `_modules` and a summary:
+
+> **Active permission modules:**
+> | Module | Description | Allow | Ask | Deny |
+> |--------|-------------|-------|-----|------|
+> | `_base` | Core tools, git read, utilities | _N_ | _N_ | 0 |
+> | `_security` | Destructive ops, sensitive files | 0 | 0 | _N_ |
+> | `github` | GitHub MCP + gh CLI | _N_ | _N_ | 0 |
+> | `nodejs` | npm/yarn/pnpm/bun | _N_ | _N_ | 0 |
+> | **Custom** | User-defined rules | _N_ | _N_ | _N_ |
+> | **Total** | _(deduplicated)_ | **_N_** | **_N_** | **_N_** |
+>
+> Compute counts from the actual module JSON files. Do not hardcode counts.
+
+3. If the user asks for details on a specific tier or module, show the actual rules.
+
+#### 7d. Add Custom Permissions
+
+When the user asks to add custom permissions (e.g., "allow terraform plan", "block kubectl delete"):
+
+1. Read the existing `.claude/settings.json`.
+2. Ask the user what rules they want. Accept natural language and translate to permission syntax:
+   - "allow terraform plan" → `Bash(terraform plan *)` in `allow`
+   - "ask before terraform apply" → `Bash(terraform apply *)` in `ask`
+   - "block kubectl delete" → `Bash(kubectl delete *)` in `deny`
+   - "allow the Jira MCP read tools" → `mcp__jira__get_*` etc. in `allow`
+3. Show a **preview** with the translated rules:
+
+> **Custom rules to add:**
+> | Tier | Rule |
+> |------|------|
+> | Allow | `Bash(terraform plan *)` |
+> | Allow | `Bash(terraform show *)` |
+> | Ask | `Bash(terraform apply *)` |
+> | Deny | `Bash(terraform destroy *)` |
+>
+> Does this look right?
+
+4. On confirmation, add to the appropriate arrays in `.claude/settings.json`.
+5. Custom rules are tracked separately — they are NOT associated with any module, so removing a module won't affect them.
+
+#### 7e. Preview Current Settings File
+
+When the user asks to preview the full settings (e.g., "show me the full permissions JSON"):
+
+1. Read `.claude/settings.json`.
+2. Display the full JSON contents.
+3. Optionally offer to open it in the user's editor.
+
 ## Conventions
 
 - **Never modify the `main/` clone's branch** — it anchors all worktrees. Document this in CLAUDE.md.
@@ -209,6 +403,13 @@ When the user asks to remove a worktree:
 - **The `sketch/` directory is ephemeral** — agents can write anything there. It is always gitignored.
 - **The `tasks/` directory** is for coordination between agents and humans. Files here describe work items, assignments, and status.
 - **The `docs/` directory** is for durable design documentation that outlives any single task.
+- **Permissions are always project-scoped.** All permission configuration goes in the workspace's
+  `.claude/settings.json` (project-level), never in `~/.claude/settings.json` (user-level).
+  Project-level settings are portable, version-controllable, and scoped to the workspace — they
+  don't leak into the user's other projects. If the user asks to set permissions globally, explain
+  the trade-offs (affects all projects, not shareable with collaborators) and confirm before
+  proceeding. If they still want global changes, direct them to edit `~/.claude/settings.json`
+  manually rather than doing it for them.
 
 ## Error Handling
 

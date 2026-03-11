@@ -1,0 +1,22 @@
+{
+  "name": "rust",
+  "description": "Rust ecosystem — cargo for building, testing, linting, and dependency management.",
+  "detect": ["Cargo.toml"],
+  "allow": [
+    "Bash(cargo test *)",
+    "Bash(cargo build *)",
+    "Bash(cargo check *)",
+    "Bash(cargo clippy *)",
+    "Bash(cargo doc *)",
+    "Bash(cargo bench *)",
+    "Bash(cargo tree *)",
+    "Bash(cargo metadata *)"
+  ],
+  "ask": [
+    "Bash(cargo add *)",
+    "Bash(cargo remove *)",
+    "Bash(cargo install *)",
+    "Bash(cargo update *)"
+  ],
+  "deny": []
+}

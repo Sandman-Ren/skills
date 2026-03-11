@@ -1,0 +1,32 @@
+{
+  "name": "python",
+  "description": "Python ecosystem — pytest, mypy, pylint, ruff for testing and linting, plus pip, poetry, uv for dependency management.",
+  "detect": ["requirements.txt", "pyproject.toml", "setup.py", "setup.cfg", "Pipfile"],
+  "allow": [
+    "Bash(python -m pytest *)",
+    "Bash(python3 -m pytest *)",
+    "Bash(python -m mypy *)",
+    "Bash(python3 -m mypy *)",
+    "Bash(python -m pylint *)",
+    "Bash(python3 -m pylint *)",
+    "Bash(python -m ruff check *)",
+    "Bash(python3 -m ruff check *)",
+    "Bash(python -c *)",
+    "Bash(python3 -c *)",
+    "Bash(poetry run *)",
+    "Bash(poetry show *)"
+  ],
+  "ask": [
+    "Bash(pip install *)",
+    "Bash(pip uninstall *)",
+    "Bash(pip3 install *)",
+    "Bash(pip3 uninstall *)",
+    "Bash(poetry install *)",
+    "Bash(poetry add *)",
+    "Bash(poetry remove *)",
+    "Bash(poetry lock *)",
+    "Bash(uv pip install *)",
+    "Bash(uv add *)"
+  ],
+  "deny": []
+}

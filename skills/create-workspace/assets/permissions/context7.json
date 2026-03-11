@@ -1,0 +1,14 @@
+{
+  "name": "context7",
+  "description": "Context7 MCP tools for looking up library documentation and code examples.",
+  "detect": [],
+  "always_suggest": true,
+  "allow": [
+    "mcp__context7__resolve-library-id",
+    "mcp__context7__query-docs",
+    "mcp__plugin_context7_context7__resolve-library-id",
+    "mcp__plugin_context7_context7__query-docs"
+  ],
+  "ask": [],
+  "deny": []
+}

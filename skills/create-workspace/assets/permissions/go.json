@@ -1,0 +1,20 @@
+{
+  "name": "go",
+  "description": "Go ecosystem — building, testing, linting, and dependency management.",
+  "detect": ["go.mod"],
+  "allow": [
+    "Bash(go test *)",
+    "Bash(go build *)",
+    "Bash(go vet *)",
+    "Bash(go doc *)",
+    "Bash(go list *)",
+    "Bash(go env *)",
+    "Bash(go version *)"
+  ],
+  "ask": [
+    "Bash(go mod *)",
+    "Bash(go get *)",
+    "Bash(go install *)"
+  ],
+  "deny": []
+}
