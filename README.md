@@ -86,6 +86,35 @@ my-workspace/
 
 **Triggers:** "create a workspace", "set up a multi-repo project", "add a repo to the workspace", "create a worktree", "add github permissions", "set up workspace permissions"
 
+### stenographer
+
+Export conversation transcripts to Markdown, JSON, or HTML for sharing, archiving, or blog writing. Parses Claude Code JSONL session files and renders them as clean, human-readable documents.
+
+**Features:**
+- Parses JSONL session files with full tree linearization (handles branching conversations)
+- Three output formats: Markdown, JSON, and HTML (self-contained dark theme)
+- Tool call summarization with collapsible details
+- Subagent detection and optional inline transcripts
+- Blog mode for narrative-friendly output
+- Clipboard support
+- Session listing
+
+**Flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--format md\|json\|html` | Output format (default: `md`) |
+| `--output FILE` | Write to file |
+| `--blog` | Blog-ready mode — clean narrative, no tool noise |
+| `--list` | List available sessions |
+| `--include-thinking` | Include thinking/reasoning blocks |
+| `--include-subagents` | Inline full subagent transcripts |
+| `--verbose-tools` | Show full tool inputs and outputs |
+| `--no-tool-details` | Hide tool calls entirely |
+| `--clipboard` | Copy output to clipboard |
+
+**Triggers:** "export this conversation", "save transcript", "share this session", "turn this into a blog post"
+
 ## License
 
 MIT
