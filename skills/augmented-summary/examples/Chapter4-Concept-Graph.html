@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 4 — Training Data · Concept Graph</title>
+<style>
+  :root{
+    --bg:#0f1420; --panel:#1a2233; --panel2:#222c42; --ink:#e7ecf5; --muted:#94a3b8;
+    --sampling:#4C9AFF; --labeling:#42d392; --imbalance:#ff8b6b; --augmentation:#b388ff; --external:#8ea0b5;
+    --edge:#3a465e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  #wrap{display:flex;height:100vh;width:100vw;overflow:hidden}
+  #graph{flex:1;position:relative}
+  svg{width:100%;height:100%;display:block;cursor:grab}
+  svg.grabbing{cursor:grabbing}
+  .edge{stroke:var(--edge);stroke-width:1.4;fill:none}
+  .edge.forward{stroke:#42d392;stroke-dasharray:6 4;opacity:.7}
+  .edge.lateral{stroke:#ff8b6b;stroke-dasharray:2 4;opacity:.7}
+  .edge.deepdive{stroke:#b388ff;stroke-width:2;opacity:.8}
+  .edge.hier{stroke:#46556f}
+  .node circle{stroke:#0f1420;stroke-width:2;cursor:pointer;transition:filter .15s}
+  .node text{fill:var(--ink);font-size:11px;pointer-events:none;text-shadow:0 1px 3px #000a}
+  .node.dim{opacity:.18}
+  .node circle:hover{filter:brightness(1.25)}
+  .star{fill:#ffd34e;font-size:13px;pointer-events:none}
+  /* Sidebar */
+  #side{width:360px;min-width:360px;background:var(--panel);border-left:1px solid #2a3550;
+    display:flex;flex-direction:column;overflow:hidden}
+  #side header{padding:18px 18px 12px;border-bottom:1px solid #2a3550}
+  #side h1{font-size:15px;margin:0 0 4px}
+  #side .sub{color:var(--muted);font-size:12px}
+  #content{padding:18px;overflow:auto;flex:1}
+  #content .placeholder{color:var(--muted);font-size:13px;line-height:1.6}
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;margin:0 6px 6px 0}
+  .b-Intro{background:#14361f;color:#7ee0a3}.b-Intermediate{background:#3a2f13;color:#ffd98a}
+  .b-Advanced{background:#3a1d1d;color:#ff9d9d}
+  .grp{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  #content h2{font-size:16px;margin:4px 0 10px}
+  #content p.s{font-size:13.5px;line-height:1.62;color:#d4dcec}
+  .field{font-size:12px;color:var(--muted);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.05em}
+  .links a{display:block;padding:9px 12px;margin:6px 0;background:var(--panel2);border:1px solid #303d5a;
+    border-radius:9px;color:#cfe0ff;text-decoration:none;font-size:13px;transition:background .15s}
+  .links a:hover{background:#2c3a59}
+  .links a .k{color:var(--muted);font-size:11px;display:block}
+  .pre{font-size:12.5px;color:#aeb9cc;line-height:1.5}
+  /* Toolbar */
+  #bar{position:absolute;top:0;left:0;right:0;padding:12px 16px;display:flex;gap:10px;align-items:center;
+    flex-wrap:wrap;pointer-events:none}
+  #bar>*{pointer-events:auto}
+  #bar h2{font-size:14px;margin:0;margin-right:8px;font-weight:700}
+  #search{background:#1a2233;border:1px solid #2f3c59;color:var(--ink);border-radius:8px;padding:7px 11px;font-size:13px;width:180px}
+  .filt{font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .filt label{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+  .legend{position:absolute;bottom:12px;left:16px;font-size:11.5px;color:var(--muted);
+    background:#131a28cc;border:1px solid #28324c;border-radius:10px;padding:10px 12px;line-height:1.7}
+  .legend b{color:var(--ink);font-weight:600}
+  .ekey{display:inline-block;width:22px;height:0;border-top-width:2px;border-top-style:solid;vertical-align:middle;margin-right:5px}
+  .hint{position:absolute;bottom:12px;right:16px;font-size:11px;color:#5d6b85}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="graph">
+    <div id="bar">
+      <h2>Ch 4 · Training Data</h2>
+      <input id="search" placeholder="search concepts…" autocomplete="off">
+      <div class="filt" id="filters"></div>
+    </div>
+    <svg id="svg"></svg>
+    <div class="legend" id="legend"></div>
+    <div class="hint">drag nodes · scroll to zoom · click a node for details</div>
+  </div>
+  <aside id="side">
+    <header>
+      <h1>Augmented Concept Map</h1>
+      <div class="sub">Click any concept. ★ = expanded deep dive. Links open chapter pages, papers, and tools.</div>
+    </header>
+    <div id="content"><div class="placeholder">Select a node to see its summary, prerequisites, difficulty, and links to the chapter section, the referenced papers (in this folder), external tools, and a hands-on exercise.<br><br>Use the filters to isolate a section, or search to highlight a concept.</div></div>
+  </aside>
+</div>
+<script>
+const BOOK = encodeURI("Designing Machine Learning Systems (Chip Huyen).pdf");
+function pg(n){return BOOK + "#page=" + n;}
+const G = {
+  sampling:{c:"#4C9AFF",label:"Sampling"}, labeling:{c:"#42d392",label:"Labeling"},
+  imbalance:{c:"#ff8b6b",label:"Class Imbalance"}, augmentation:{c:"#b388ff",label:"Data Augmentation"}
+};
+// nodes: id,label,group,diff,star,sum,links[{k,t,u}],pre
+const N = [
+ {id:"sampling",label:"Sampling",group:"sampling",diff:"Intro",sum:"Creating training data and splits from real-world data. Good sampling decides whether a model works.",links:[["Chapter","§ Sampling",pg(102)]]},
+ {id:"nonprob",label:"Nonprobability",group:"sampling",diff:"Intro",sum:"Convenience/judgment/quota sampling — cheap but biased and unrepresentative (selection bias).",links:[["Chapter","§ Nonprobability Sampling",pg(103)],["Paper","Heckman 1979, Sample Selection Bias","https://www.jstor.org/stable/1912352"]]},
+ {id:"random",label:"Simple Random",group:"sampling",diff:"Intro",sum:"Equal selection probability for all examples. Simple, but rare classes can be missed entirely.",links:[["Chapter","§ Simple Random Sampling",pg(104)]]},
+ {id:"stratified",label:"Stratified",group:"sampling",diff:"Intro",sum:"Split into strata and sample each, guaranteeing rare groups appear in the sample.",links:[["Chapter","§ Stratified Sampling",pg(104)]]},
+ {id:"weighted",label:"Weighted Sampling",group:"sampling",diff:"Intermediate",sum:"Assign selection weights so some samples are drawn more often — encode priors or correct distributions.",links:[["Chapter","§ Weighted Sampling",pg(105)],["Tool","scikit-learn: SVM weighted samples","https://scikit-learn.org/stable/auto_examples/svm/plot_weighted_samples.html"]]},
+ {id:"reservoir",label:"Reservoir",group:"sampling",diff:"Intermediate",sum:"One-pass algorithm to sample k items from a stream of unknown length, each with equal probability.",links:[["Chapter","§ Reservoir Sampling",pg(106)],["Practice","Wikipedia: Reservoir sampling","https://en.wikipedia.org/wiki/Reservoir_sampling"]]},
+ {id:"importance",label:"Importance Sampling",group:"sampling",diff:"Advanced",star:1,sum:"Estimate properties of distribution p using samples from proposal q, reweighting by p/q. Deep dive #5: estimator, variance pitfalls, off-policy & shift reweighting.",pre:"PDFs, Monte Carlo, variance",links:[["Chapter","§ Importance Sampling",pg(107)],["Reference","Owen, Monte Carlo Theory & Methods (Ch 9)","https://artowen.su.domains/mc/"],["Hands-on","Gaussian-tail IS in NumPy + effective sample size","https://artowen.su.domains/mc/"]]},
+
+ {id:"labeling",label:"Labeling",group:"labeling",diff:"Intro",sum:"Labels are the supervised-learning bottleneck. Four coping strategies: weak/semi-supervision, transfer, active learning.",links:[["Chapter","§ Labeling",pg(108)]]},
+ {id:"handlabels",label:"Hand Labels",group:"labeling",diff:"Intro",sum:"Human annotation: expensive, slow, privacy concerns, label multiplicity (disagreement), data lineage.",links:[["Chapter","§ Hand Labels",pg(108)]]},
+ {id:"natural",label:"Natural Labels",group:"labeling",diff:"Intermediate",sum:"Ground truth from user behavior (clicks, ETAs). Feedback-loop length; explicit vs implicit feedback.",links:[["Chapter","§ Natural Labels",pg(111)],["Paper","Ktena et al. 2019, Delayed Feedback (CTR)","https://arxiv.org/abs/1907.06558"]]},
+ {id:"weaksup",label:"Weak Supervision",group:"labeling",diff:"Advanced",star:1,sum:"Programmatic labeling functions combined into probabilistic labels by a generative label model. Deep dive #1: how Snorkel denoises LFs.",pre:"PGMs, MLE/EM, latent variables",links:[["Chapter","§ Weak Supervision",pg(114)],["Paper","Ratner et al., Data Programming (NeurIPS 2016)","https://arxiv.org/abs/1605.07723"],["Paper","Snorkel (PVLDB 2017)","https://arxiv.org/abs/1711.10160"],["Hands-on","Snorkel Spam tutorial (LabelModel)","https://www.snorkel.org/use-cases/01-spam-tutorial"]]},
+ {id:"semisup",label:"Semi-Supervision",group:"labeling",diff:"Advanced",sum:"Small labeled + large unlabeled set. Self-training, co-training, graph-based, perturbation methods.",pre:"supervised learning, clustering",links:[["Chapter","§ Semi-Supervision",pg(118)],["Survey (in folder)","Zhu 2008, SSL Literature Survey","zhu_ssl_survey_2008.pdf"],["Survey (in folder)","van Engelen & Hoos 2020","engelen_hoos_survey.pdf"],["Paper","Blum & Mitchell 1998, Co-Training","https://www.cs.cmu.edu/~avrim/Papers/cotrain.pdf"]]},
+ {id:"transfer",label:"Transfer Learning",group:"labeling",diff:"Intermediate",sum:"Pretrain on a data-rich task, fine-tune / few-shot on the low-label task. Foundation-model lineage.",pre:"neural nets, pretraining",links:[["Chapter","§ Transfer Learning",pg(120)],["Paper","Devlin et al. 2018, BERT","https://arxiv.org/abs/1810.04805"],["Paper","Brown et al. 2020, GPT-3 (few-shot)","https://arxiv.org/abs/2005.14165"],["Paper","Howard & Ruder 2018, ULMFiT","https://arxiv.org/abs/1801.06146"]]},
+ {id:"active",label:"Active Learning",group:"labeling",diff:"Intermediate",sum:"Model chooses which examples to label (most uncertain / most disagreed). Reaches accuracy with fewer labels.",pre:"uncertainty, ensembles",links:[["Chapter","§ Active Learning",pg(122)],["Survey (in folder)","Settles 2010, Active Learning Survey","settles_active_learning_2010.pdf"],["Paper","Angluin 1988, Queries & Concept Learning","https://link.springer.com/article/10.1007/BF00116828"]]},
+
+ {id:"imbalance",label:"Class Imbalance",group:"imbalance",diff:"Intro",sum:"One class vastly outnumbers another (fraud, disease, spam). Models bias toward the majority.",links:[["Chapter","§ Class Imbalance",pg(122)],["Survey (in folder)","Johnson & Khoshgoftaar 2019","johnson_class_imbalance_2019.pdf"]]},
+ {id:"challenges",label:"Challenges",group:"imbalance",diff:"Intermediate",sum:"Too few minority signals; trivial majority solution; asymmetric error cost. Worse with complexity & small data.",links:[["Chapter","§ Challenges of Class Imbalance",pg(123)],["Paper","Japkowicz & Stephen 2002, Systematic Study","https://www.researchgate.net/publication/220571380"]]},
+ {id:"metrics",label:"Right Metrics",group:"imbalance",diff:"Intermediate",sum:"Accuracy misleads under skew. Use precision/recall/F1 and PR curves over ROC for heavy imbalance.",links:[["Chapter","§ Handling — metrics",pg(126)],["Paper","Davis & Goadrich 2006, PR vs ROC","https://www.biostat.wisc.edu/~page/rocpr.pdf"]]},
+ {id:"datalevel",label:"Data-Level (resampling)",group:"imbalance",diff:"Intermediate",sum:"Oversample minority / undersample majority; dynamic & two-phase schemes for deep nets. Resample only the training split.",links:[["Chapter","§ Data-Level Methods",pg(128)]]},
+ {id:"smote",label:"SMOTE family",group:"imbalance",diff:"Intermediate",star:1,sum:"SMOTE interpolates synthetic minority points; Tomek links & one-sided selection clean the majority. Deep dive #3.",pre:"k-NN, leakage, decision boundaries",links:[["Paper","Chawla et al. 2002, SMOTE","https://doi.org/10.1613/jair.953"],["Hands-on","imbalanced-learn (SMOTE, Tomek, pipeline)","https://imbalanced-learn.org/stable/"]]},
+ {id:"algolevel",label:"Algorithm-Level",group:"imbalance",diff:"Advanced",sum:"Modify the loss, not the data: cost-sensitive learning, class-balanced loss, focal loss; ensembles.",links:[["Chapter","§ Algorithm-Level Methods",pg(131)],["Paper","Elkan 2001, Cost-Sensitive Learning","https://cseweb.ucsd.edu/~elkan/rescale.pdf"]]},
+ {id:"focal",label:"Focal Loss",group:"imbalance",diff:"Intermediate",star:1,sum:"FL = −(1−p_t)^γ·log(p_t) down-weights easy examples so training focuses on hard minorities. Deep dive #2.",pre:"cross-entropy, sigmoid, gradients",links:[["Paper","Lin et al. 2017, Focal Loss (RetinaNet)","https://arxiv.org/abs/1708.02002"],["Hands-on","torchvision.ops.sigmoid_focal_loss","https://pytorch.org/vision/stable/generated/torchvision.ops.sigmoid_focal_loss.html"]]},
+
+ {id:"augmentation",label:"Data Augmentation",group:"augmentation",diff:"Intro",sum:"Increase data size/diversity for generalization & robustness. Three families below.",links:[["Chapter","§ Data Augmentation",pg(133)],["Survey (in folder)","Shorten & Khoshgoftaar 2019 (images)","shorten_image_augmentation_2019.pdf"]]},
+ {id:"simpletransforms",label:"Simple Transforms",group:"augmentation",diff:"Intro",sum:"Label-preserving flips/crops/rotations/color (vision); synonym swaps (NLP). Cheap and effective.",links:[["Chapter","§ Simple Label-Preserving Transformations",pg(134)],["Paper","Krizhevsky et al. 2012, AlexNet","https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks"]]},
+ {id:"perturbation",label:"Perturbation",group:"augmentation",diff:"Advanced",sum:"Add noise / adversarial perturbations to harden models. Tiny changes can flip predictions.",pre:"gradients, model robustness",links:[["Chapter","§ Perturbation",pg(134)],["Paper","Goodfellow et al. 2015, FGSM","https://arxiv.org/abs/1412.6572"],["Paper","Su et al. 2019, One-Pixel Attack","https://arxiv.org/abs/1710.08864"]]},
+ {id:"synthesis",label:"Data Synthesis",group:"augmentation",diff:"Advanced",sum:"Synthesize training data: mixup (combine examples+labels) and GAN-based synthesis (e.g., CycleGAN CT).",links:[["Chapter","§ Data Synthesis",pg(136)],["Paper","Sandfort et al. 2019, CycleGAN CT","https://www.nature.com/articles/s41598-019-52737-x"]]},
+ {id:"mixup",label:"mixup / VRM",group:"augmentation",diff:"Intermediate",star:1,sum:"Train on convex combos of inputs & labels, λ~Beta(α,α). Vicinal Risk Minimization. Deep dive #4.",pre:"ERM, cross-entropy, Beta dist",links:[["Paper","Zhang et al. 2018, mixup","https://arxiv.org/abs/1710.09412"],["Hands-on","torchvision.transforms.v2.MixUp","https://pytorch.org/vision/stable/transforms.html"]]}
+];
+// edges
+const E = [
+ ["sampling","nonprob","hier"],["sampling","random","hier"],["sampling","stratified","hier"],
+ ["sampling","weighted","hier"],["sampling","reservoir","hier"],["sampling","importance","hier"],
+ ["random","imbalance","forward"],["stratified","imbalance","lateral"],["weighted","algolevel","lateral"],
+ ["labeling","handlabels","hier"],["labeling","natural","hier"],["labeling","weaksup","hier"],
+ ["labeling","semisup","hier"],["labeling","transfer","hier"],["labeling","active","hier"],
+ ["handlabels","weaksup","forward"],["weaksup","semisup","lateral"],["semisup","perturbation","lateral"],
+ ["imbalance","challenges","hier"],["imbalance","metrics","hier"],["imbalance","datalevel","hier"],["imbalance","algolevel","hier"],
+ ["datalevel","smote","deepdive"],["algolevel","focal","deepdive"],
+ ["augmentation","simpletransforms","hier"],["augmentation","perturbation","hier"],["augmentation","synthesis","hier"],
+ ["synthesis","mixup","deepdive"],["importance","importance","_"], // placeholder removed below
+ ["active","challenges","lateral"]
+].filter(e=>e[2]!=="_");
+// physics
+const svg=document.getElementById("svg");
+const NS="http://www.w3.org/2000/svg";
+let W=svg.clientWidth,H=svg.clientHeight;
+const idx={};N.forEach((n,i)=>{idx[n.id]=n;n.x=W/2+(Math.random()-.5)*400;n.y=H/2+(Math.random()-.5)*400;n.vx=0;n.vy=0;});
+let view={x:0,y:0,k:1};
+const gRoot=document.createElementNS(NS,"g");svg.appendChild(gRoot);
+const gEdges=document.createElementNS(NS,"g");gRoot.appendChild(gEdges);
+const gNodes=document.createElementNS(NS,"g");gRoot.appendChild(gNodes);
+const edgeEls=E.map(e=>{const l=document.createElementNS(NS,"line");l.setAttribute("class","edge "+e[2]);gEdges.appendChild(l);return {l,s:idx[e[0]],t:idx[e[1]]};});
+const nodeEls=N.map(n=>{
+  const g=document.createElementNS(NS,"g");g.setAttribute("class","node");
+  const c=document.createElementNS(NS,"circle");
+  const r=n.id.match(/sampling|labeling|imbalance|augmentation/)&&["sampling","labeling","imbalance","augmentation"].includes(n.id)?20:13;
+  n.r=r;c.setAttribute("r",r);c.setAttribute("fill",G[n.group].c);
+  if(n.diff==="Advanced")c.setAttribute("stroke","#ff5d5d");if(n.diff==="Intermediate")c.setAttribute("stroke","#ffd98a");if(n.diff==="Intro")c.setAttribute("stroke","#0f1420");
+  g.appendChild(c);
+  const t=document.createElementNS(NS,"text");t.setAttribute("x",r+4);t.setAttribute("y",4);t.textContent=n.label+(n.star?" ★":"");
+  g.appendChild(t);gNodes.appendChild(g);
+  g.addEventListener("click",ev=>{ev.stopPropagation();select(n);});
+  // drag
+  let dragging=false,sx,sy;
+  c.addEventListener("pointerdown",ev=>{dragging=true;n.fixed=true;sx=ev.clientX;sy=ev.clientY;c.setPointerCapture(ev.pointerId);ev.stopPropagation();});
+  c.addEventListener("pointermove",ev=>{if(!dragging)return;n.x+=(ev.clientX-sx)/view.k;n.y+=(ev.clientY-sy)/view.k;sx=ev.clientX;sy=ev.clientY;n.vx=0;n.vy=0;});
+  c.addEventListener("pointerup",ev=>{dragging=false;n.fixed=false;});
+  return {g,c,t,n};
+});
+function tick(){
+  for(let i=0;i<N.length;i++){const a=N[i];if(a.fixed)continue;
+    for(let j=0;j<N.length;j++){if(i===j)continue;const b=N[j];
+      let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+0.01,d=Math.sqrt(d2);
+      const rep=2600/d2;a.vx+=dx/d*rep;a.vy+=dy/d*rep;}}
+  E.forEach(e=>{const a=idx[e[0]],b=idx[e[1]];let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)+.01;
+    const target=e[2]==="hier"?95:150;const f=(d-target)*0.012;
+    const fx=dx/d*f,fy=dy/d*f;if(!a.fixed){a.vx+=fx;a.vy+=fy;}if(!b.fixed){b.vx-=fx;b.vy-=fy;}});
+  N.forEach(n=>{if(n.fixed)return;n.vx+=(W/2-n.x)*0.0016;n.vy+=(H/2-n.y)*0.0016;
+    n.vx*=0.86;n.vy*=0.86;n.x+=n.vx;n.y+=n.vy;});
+  edgeEls.forEach(o=>{o.l.setAttribute("x1",o.s.x);o.l.setAttribute("y1",o.s.y);o.l.setAttribute("x2",o.t.x);o.l.setAttribute("y2",o.t.y);});
+  nodeEls.forEach(o=>{o.g.setAttribute("transform","translate("+o.n.x+","+o.n.y+")");});
+  requestAnimationFrame(tick);
+}
+function applyView(){gRoot.setAttribute("transform","translate("+view.x+","+view.y+") scale("+view.k+")");}
+// pan/zoom
+let pan=false,px,py;
+svg.addEventListener("pointerdown",ev=>{pan=true;px=ev.clientX;py=ev.clientY;svg.classList.add("grabbing");});
+svg.addEventListener("pointermove",ev=>{if(!pan)return;view.x+=ev.clientX-px;view.y+=ev.clientY-py;px=ev.clientX;py=ev.clientY;applyView();});
+window.addEventListener("pointerup",()=>{pan=false;svg.classList.remove("grabbing");});
+svg.addEventListener("wheel",ev=>{ev.preventDefault();const s=ev.deltaY<0?1.12:0.89;
+  const mx=ev.clientX,my=ev.clientY;view.x=mx-(mx-view.x)*s;view.y=my-(my-view.y)*s;view.k*=s;applyView();},{passive:false});
+// sidebar
+const content=document.getElementById("content");
+function select(n){
+  nodeEls.forEach(o=>o.g.classList.remove("dim"));
+  const neigh=new Set([n.id]);E.forEach(e=>{if(e[0]===n.id)neigh.add(e[1]);if(e[1]===n.id)neigh.add(e[0]);});
+  nodeEls.forEach(o=>{if(!neigh.has(o.n.id))o.g.classList.add("dim");});
+  let h=`<h2><span class="grp" style="background:${G[n.group].c}"></span>${n.label}${n.star?' <span style="color:#ffd34e">★</span>':''}</h2>`;
+  h+=`<span class="badge b-${n.diff}">${n.diff}</span><span class="badge" style="background:#222c42;color:#9fb0c8">${G[n.group].label}</span>`;
+  h+=`<p class="s">${n.sum}</p>`;
+  if(n.pre){h+=`<div class="field">Prerequisites</div><div class="pre">${n.pre}</div>`;}
+  h+=`<div class="field">Links</div><div class="links">`;
+  n.links.forEach(l=>{h+=`<a href="${l[2]}" target="_blank" rel="noopener"><span class="k">${l[0]}</span>${l[1]}</a>`;});
+  h+=`</div>`;
+  if(n.star){h+=`<div class="field">Deep dive</div><div class="pre">Full expansion (mechanism, math, hands-on) is in <b>Chapter4-Augmented-Summary.md</b>, Part 2.</div>`;}
+  content.innerHTML=h;
+}
+svg.addEventListener("click",()=>{nodeEls.forEach(o=>o.g.classList.remove("dim"));});
+// filters + legend + search
+const filters=document.getElementById("filters");
+Object.keys(G).forEach(k=>{const lab=document.createElement("label");
+  lab.innerHTML=`<input type="checkbox" checked data-g="${k}"><span class="grp" style="background:${G[k].c}"></span>${G[k].label}`;
+  filters.appendChild(lab);});
+filters.addEventListener("change",()=>{const on={};filters.querySelectorAll("input").forEach(i=>on[i.dataset.g]=i.checked);
+  nodeEls.forEach(o=>o.g.style.display=on[o.n.group]?"":"none");
+  edgeEls.forEach(o=>o.l.style.display=(on[o.s.group]&&on[o.t.group])?"":"none");});
+document.getElementById("search").addEventListener("input",e=>{const q=e.target.value.toLowerCase();
+  nodeEls.forEach(o=>{const m=!q||o.n.label.toLowerCase().includes(q)||o.n.sum.toLowerCase().includes(q);
+    o.g.classList.toggle("dim",q&&!m);});});
+document.getElementById("legend").innerHTML=
+ `<b>Node border</b> = difficulty: <span style="color:#7ee0a3">Intro</span> · <span style="color:#ffd98a">Intermediate</span> · <span style="color:#ff9d9d">Advanced</span> · ★ deep dive<br>`+
+ `<b>Edges</b>: <span class="ekey" style="border-color:#46556f"></span>structure `+
+ `<span class="ekey" style="border-color:#42d392"></span>forward `+
+ `<span class="ekey" style="border-color:#ff8b6b"></span>lateral `+
+ `<span class="ekey" style="border-color:#b388ff"></span>deep dive`;
+window.addEventListener("resize",()=>{W=svg.clientWidth;H=svg.clientHeight;});
+// seed root positions
+["sampling","labeling","imbalance","augmentation"].forEach((id,i)=>{const a=(i/4)*Math.PI*2;idx[id].x=W/2+Math.cos(a)*180;idx[id].y=H/2+Math.sin(a)*180;});
+applyView();tick();
+</script>
+</body>
+</html>

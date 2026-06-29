@@ -1,0 +1,478 @@
+{
+  "book": "Designing Machine Learning Systems (Chip Huyen)",
+  "chapter": 4,
+  "title": "Training Data",
+  "generated_by": "Augmented-Summary-System v1.0",
+  "concepts": [
+    {
+      "id": "sampling",
+      "label": "Sampling",
+      "chapter": 4,
+      "section": "Sampling",
+      "order": 1,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Create training data & splits from real data.",
+      "associations": [
+        {
+          "type": "hier",
+          "target": "nonprob"
+        },
+        {
+          "type": "hier",
+          "target": "random"
+        },
+        {
+          "type": "hier",
+          "target": "stratified"
+        },
+        {
+          "type": "hier",
+          "target": "weighted"
+        },
+        {
+          "type": "hier",
+          "target": "reservoir"
+        },
+        {
+          "type": "hier",
+          "target": "importance"
+        },
+        {
+          "type": "backward",
+          "target": "Ch3: data sources & streaming"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "nonprob",
+      "label": "Nonprobability Sampling",
+      "chapter": 4,
+      "section": "Sampling",
+      "order": 2,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Convenience/judgment sampling; selection bias.",
+      "associations": [],
+      "verified": null
+    },
+    {
+      "id": "random",
+      "label": "Simple Random Sampling",
+      "chapter": 4,
+      "section": "Sampling",
+      "order": 3,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Equal selection prob; misses rare classes.",
+      "associations": [
+        {
+          "type": "forward",
+          "target": "imbalance"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "stratified",
+      "label": "Stratified Sampling",
+      "chapter": 4,
+      "section": "Sampling",
+      "order": 4,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Sample each stratum; rare groups appear.",
+      "associations": [
+        {
+          "type": "lateral",
+          "target": "imbalance"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "weighted",
+      "label": "Weighted Sampling",
+      "chapter": 4,
+      "section": "Sampling",
+      "order": 5,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "Selection weights encode priors/corrections.",
+      "associations": [
+        {
+          "type": "lateral",
+          "target": "algolevel"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "reservoir",
+      "label": "Reservoir Sampling",
+      "chapter": 4,
+      "section": "Sampling",
+      "order": 6,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "One-pass k-from-stream equal-prob sampling.",
+      "associations": [],
+      "verified": null
+    },
+    {
+      "id": "importance",
+      "label": "Importance Sampling",
+      "chapter": 4,
+      "section": "Sampling",
+      "order": 7,
+      "scope": "out-of-scope",
+      "difficulty": "Advanced",
+      "summary": "Reweight samples from proposal q by p/q.",
+      "associations": [
+        {
+          "type": "lateral",
+          "target": "Ch9: distribution shift reweighting"
+        }
+      ],
+      "verified": true
+    },
+    {
+      "id": "labeling",
+      "label": "Labeling",
+      "chapter": 4,
+      "section": "Labeling",
+      "order": 8,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Labels are the supervised bottleneck.",
+      "associations": [
+        {
+          "type": "hier",
+          "target": "handlabels"
+        },
+        {
+          "type": "hier",
+          "target": "natural"
+        },
+        {
+          "type": "hier",
+          "target": "weaksup"
+        },
+        {
+          "type": "hier",
+          "target": "semisup"
+        },
+        {
+          "type": "hier",
+          "target": "transfer"
+        },
+        {
+          "type": "hier",
+          "target": "active"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "handlabels",
+      "label": "Hand Labels",
+      "chapter": 4,
+      "section": "Labeling",
+      "order": 9,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Human annotation; multiplicity; lineage.",
+      "associations": [
+        {
+          "type": "forward",
+          "target": "weaksup"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "natural",
+      "label": "Natural Labels",
+      "chapter": 4,
+      "section": "Labeling",
+      "order": 10,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "Ground truth from user behavior; feedback loops.",
+      "associations": [
+        {
+          "type": "forward",
+          "target": "Ch9: feedback loops & continual learning"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "weaksup",
+      "label": "Weak Supervision",
+      "chapter": 4,
+      "section": "Labeling",
+      "order": 11,
+      "scope": "out-of-scope",
+      "difficulty": "Advanced",
+      "summary": "Labeling functions denoised by a label model.",
+      "associations": [
+        {
+          "type": "lateral",
+          "target": "semisup"
+        }
+      ],
+      "verified": true
+    },
+    {
+      "id": "semisup",
+      "label": "Semi-Supervision",
+      "chapter": 4,
+      "section": "Labeling",
+      "order": 12,
+      "scope": "in-scope",
+      "difficulty": "Advanced",
+      "summary": "Small labeled + large unlabeled set.",
+      "associations": [
+        {
+          "type": "lateral",
+          "target": "perturbation"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "transfer",
+      "label": "Transfer Learning",
+      "chapter": 4,
+      "section": "Labeling",
+      "order": 13,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "Pretrain then fine-tune/few-shot.",
+      "associations": [
+        {
+          "type": "forward",
+          "target": "Ch5: feature engineering / embeddings"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "active",
+      "label": "Active Learning",
+      "chapter": 4,
+      "section": "Labeling",
+      "order": 14,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "Model queries most informative examples.",
+      "associations": [
+        {
+          "type": "lateral",
+          "target": "challenges"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "imbalance",
+      "label": "Class Imbalance",
+      "chapter": 4,
+      "section": "Class Imbalance",
+      "order": 15,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "One class dominates; majority bias.",
+      "associations": [
+        {
+          "type": "hier",
+          "target": "challenges"
+        },
+        {
+          "type": "hier",
+          "target": "metrics"
+        },
+        {
+          "type": "hier",
+          "target": "datalevel"
+        },
+        {
+          "type": "hier",
+          "target": "algolevel"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "challenges",
+      "label": "Challenges of Imbalance",
+      "chapter": 4,
+      "section": "Class Imbalance",
+      "order": 16,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "Few signals; trivial solution; asymmetric cost.",
+      "associations": [],
+      "verified": null
+    },
+    {
+      "id": "metrics",
+      "label": "Right Metrics",
+      "chapter": 4,
+      "section": "Class Imbalance",
+      "order": 17,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "PR over ROC; avoid accuracy.",
+      "associations": [
+        {
+          "type": "forward",
+          "target": "Ch6: offline evaluation"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "datalevel",
+      "label": "Data-Level Methods",
+      "chapter": 4,
+      "section": "Class Imbalance",
+      "order": 18,
+      "scope": "in-scope",
+      "difficulty": "Intermediate",
+      "summary": "Resample; train split only.",
+      "associations": [
+        {
+          "type": "deepdive",
+          "target": "smote"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "smote",
+      "label": "SMOTE family",
+      "chapter": 4,
+      "section": "Class Imbalance",
+      "order": 19,
+      "scope": "out-of-scope",
+      "difficulty": "Intermediate",
+      "summary": "Interpolate minority; Tomek/OSS undersample.",
+      "associations": [],
+      "verified": true
+    },
+    {
+      "id": "algolevel",
+      "label": "Algorithm-Level Methods",
+      "chapter": 4,
+      "section": "Class Imbalance",
+      "order": 20,
+      "scope": "in-scope",
+      "difficulty": "Advanced",
+      "summary": "Cost-sensitive & balanced losses.",
+      "associations": [
+        {
+          "type": "deepdive",
+          "target": "focal"
+        },
+        {
+          "type": "forward",
+          "target": "Ch6: ensembles"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "focal",
+      "label": "Focal Loss",
+      "chapter": 4,
+      "section": "Class Imbalance",
+      "order": 21,
+      "scope": "out-of-scope",
+      "difficulty": "Intermediate",
+      "summary": "Down-weight easy examples (1-pt)^g.",
+      "associations": [],
+      "verified": true
+    },
+    {
+      "id": "augmentation",
+      "label": "Data Augmentation",
+      "chapter": 4,
+      "section": "Data Augmentation",
+      "order": 22,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Grow data size/diversity.",
+      "associations": [
+        {
+          "type": "hier",
+          "target": "simpletransforms"
+        },
+        {
+          "type": "hier",
+          "target": "perturbation"
+        },
+        {
+          "type": "hier",
+          "target": "synthesis"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "simpletransforms",
+      "label": "Simple Transforms",
+      "chapter": 4,
+      "section": "Data Augmentation",
+      "order": 23,
+      "scope": "in-scope",
+      "difficulty": "Intro",
+      "summary": "Label-preserving flips/crops/color.",
+      "associations": [],
+      "verified": null
+    },
+    {
+      "id": "perturbation",
+      "label": "Perturbation",
+      "chapter": 4,
+      "section": "Data Augmentation",
+      "order": 24,
+      "scope": "in-scope",
+      "difficulty": "Advanced",
+      "summary": "Noise/adversarial hardening.",
+      "associations": [],
+      "verified": null
+    },
+    {
+      "id": "synthesis",
+      "label": "Data Synthesis",
+      "chapter": 4,
+      "section": "Data Augmentation",
+      "order": 25,
+      "scope": "in-scope",
+      "difficulty": "Advanced",
+      "summary": "mixup & GAN-based synthesis.",
+      "associations": [
+        {
+          "type": "deepdive",
+          "target": "mixup"
+        }
+      ],
+      "verified": null
+    },
+    {
+      "id": "mixup",
+      "label": "mixup / VRM",
+      "chapter": 4,
+      "section": "Data Augmentation",
+      "order": 26,
+      "scope": "out-of-scope",
+      "difficulty": "Intermediate",
+      "summary": "Convex combos of inputs+labels; VRM.",
+      "associations": [],
+      "verified": true
+    }
+  ]
+}
