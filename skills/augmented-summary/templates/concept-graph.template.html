@@ -1,21 +1,19 @@
 <!DOCTYPE html>
-<!-- concept-graph.template.html — Augmented Summary pipeline (Stage 7).
-     Fill the three injection points: /*__NODES__*/, /*__EDGES__*/, /*__BOOK_PDF__*/.
-     Node: {id,label,group,diff:'Intro|Intermediate|Advanced',star?,sum,pre?,links:[[kind,text,url],...]}.
-     Edge: [sourceId,targetId,'hier|forward|lateral|deepdive'].
-     Groups object G defines section colors/labels. See examples/Chapter4-Concept-Graph.html for a filled instance. -->
+<!-- concept-graph.template.html  (Augmented Summary, Stage 7) — HIERARCHICAL TREE
+     Collapsible left-to-right tree mirroring the chapter's structure. Top-to-bottom = reading order.
+     Single injection point /*__DATA__*/ takes a TREE: a root node with nested children.
+     Node: {id,label,group,order?,diff?:'Intro|Intermediate|Advanced',star?,sum?,pre?,links?:[[kind,text,url],...],children?:[...]}.
+     'group' must be a key in G (root|<section>...). Chapter links live in node.links (e.g. book.pdf#page=N).
+     See examples/Chapter4-Concept-Graph.html for a filled instance. -->
 
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chapter 4 — Training Data · Concept Graph</title>
+<title>Chapter 4 — Training Data · Concept Tree</title>
 <style>
-  :root{
-    --bg:#0f1420; --panel:#1a2233; --panel2:#222c42; --ink:#e7ecf5; --muted:#94a3b8;
-    --sampling:#4C9AFF; --labeling:#42d392; --imbalance:#ff8b6b; --augmentation:#b388ff; --external:#8ea0b5;
-    --edge:#3a465e;
-  }
+  :root{--bg:#0f1420;--panel:#1a2233;--panel2:#222c42;--ink:#e7ecf5;--muted:#94a3b8;
+    --sampling:#4C9AFF;--labeling:#42d392;--imbalance:#ff8b6b;--augmentation:#b388ff;--root:#9fb3cc;--link:#3c4a66;}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -23,48 +21,41 @@
   #graph{flex:1;position:relative}
   svg{width:100%;height:100%;display:block;cursor:grab}
   svg.grabbing{cursor:grabbing}
-  .edge{stroke:var(--edge);stroke-width:1.4;fill:none}
-  .edge.forward{stroke:#42d392;stroke-dasharray:6 4;opacity:.7}
-  .edge.lateral{stroke:#ff8b6b;stroke-dasharray:2 4;opacity:.7}
-  .edge.deepdive{stroke:#b388ff;stroke-width:2;opacity:.8}
-  .edge.hier{stroke:#46556f}
-  .node circle{stroke:#0f1420;stroke-width:2;cursor:pointer;transition:filter .15s}
-  .node text{fill:var(--ink);font-size:11px;pointer-events:none;text-shadow:0 1px 3px #000a}
-  .node.dim{opacity:.18}
-  .node circle:hover{filter:brightness(1.25)}
-  .star{fill:#ffd34e;font-size:13px;pointer-events:none}
-  /* Sidebar */
-  #side{width:360px;min-width:360px;background:var(--panel);border-left:1px solid #2a3550;
-    display:flex;flex-direction:column;overflow:hidden}
-  #side header{padding:18px 18px 12px;border-bottom:1px solid #2a3550}
+  .link{fill:none;stroke:var(--link);stroke-width:1.6}
+  .nodebox{cursor:pointer}
+  .nodebox rect.card{stroke-width:1.6;transition:filter .12s}
+  .nodebox:hover rect.card{filter:brightness(1.18)}
+  .nodebox text.lbl{fill:var(--ink);font-size:12px;dominant-baseline:middle;pointer-events:none}
+  .nodebox text.num{fill:#0b1018;font-size:9.5px;font-weight:700;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+  .nodebox.dim{opacity:.2}
+  .nodebox.sel rect.card{stroke-width:2.6;filter:brightness(1.2)}
+  .caret{fill:#0b1018;font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+  .caretbg{cursor:pointer}
+  #side{width:360px;min-width:360px;background:var(--panel);border-left:1px solid #2a3550;display:flex;flex-direction:column;overflow:hidden}
+  #side header{padding:16px 18px 12px;border-bottom:1px solid #2a3550}
   #side h1{font-size:15px;margin:0 0 4px}
-  #side .sub{color:var(--muted);font-size:12px}
+  #side .sub{color:var(--muted);font-size:12px;line-height:1.5}
   #content{padding:18px;overflow:auto;flex:1}
-  #content .placeholder{color:var(--muted);font-size:13px;line-height:1.6}
+  #content .placeholder{color:var(--muted);font-size:13px;line-height:1.65}
   .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;margin:0 6px 6px 0}
-  .b-Intro{background:#14361f;color:#7ee0a3}.b-Intermediate{background:#3a2f13;color:#ffd98a}
-  .b-Advanced{background:#3a1d1d;color:#ff9d9d}
+  .b-Intro{background:#14361f;color:#7ee0a3}.b-Intermediate{background:#3a2f13;color:#ffd98a}.b-Advanced{background:#3a1d1d;color:#ff9d9d}
   .grp{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
   #content h2{font-size:16px;margin:4px 0 10px}
   #content p.s{font-size:13.5px;line-height:1.62;color:#d4dcec}
   .field{font-size:12px;color:var(--muted);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.05em}
-  .links a{display:block;padding:9px 12px;margin:6px 0;background:var(--panel2);border:1px solid #303d5a;
-    border-radius:9px;color:#cfe0ff;text-decoration:none;font-size:13px;transition:background .15s}
+  .links a{display:block;padding:9px 12px;margin:6px 0;background:var(--panel2);border:1px solid #303d5a;border-radius:9px;color:#cfe0ff;text-decoration:none;font-size:13px}
   .links a:hover{background:#2c3a59}
   .links a .k{color:var(--muted);font-size:11px;display:block}
   .pre{font-size:12.5px;color:#aeb9cc;line-height:1.5}
-  /* Toolbar */
-  #bar{position:absolute;top:0;left:0;right:0;padding:12px 16px;display:flex;gap:10px;align-items:center;
-    flex-wrap:wrap;pointer-events:none}
+  #bar{position:absolute;top:0;left:0;right:0;padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;pointer-events:none}
   #bar>*{pointer-events:auto}
-  #bar h2{font-size:14px;margin:0;margin-right:8px;font-weight:700}
-  #search{background:#1a2233;border:1px solid #2f3c59;color:var(--ink);border-radius:8px;padding:7px 11px;font-size:13px;width:180px}
-  .filt{font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .filt label{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
-  .legend{position:absolute;bottom:12px;left:16px;font-size:11.5px;color:var(--muted);
-    background:#131a28cc;border:1px solid #28324c;border-radius:10px;padding:10px 12px;line-height:1.7}
-  .legend b{color:var(--ink);font-weight:600}
-  .ekey{display:inline-block;width:22px;height:0;border-top-width:2px;border-top-style:solid;vertical-align:middle;margin-right:5px}
+  #bar h2{font-size:14px;margin:0;margin-right:6px;font-weight:700}
+  #search{background:#1a2233;border:1px solid #2f3c59;color:var(--ink);border-radius:8px;padding:7px 11px;font-size:13px;width:150px}
+  .btn{background:#1a2233;border:1px solid #2f3c59;color:var(--muted);border-radius:8px;padding:7px 11px;font-size:12.5px;cursor:pointer}
+  .btn:hover{color:#fff;border-color:#3f5176}
+  .legend{position:absolute;bottom:12px;left:16px;font-size:11.5px;color:var(--muted);background:#131a28cc;border:1px solid #28324c;border-radius:10px;padding:10px 12px;line-height:1.7}
+  .legend b{color:var(--ink)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:4px}
   .hint{position:absolute;bottom:12px;right:16px;font-size:11px;color:#5d6b85}
 </style>
 </head>
@@ -73,119 +64,137 @@
   <div id="graph">
     <div id="bar">
       <h2>Ch 4 · Training Data</h2>
-      <input id="search" placeholder="search concepts…" autocomplete="off">
-      <div class="filt" id="filters"></div>
+      <input id="search" placeholder="search…" autocomplete="off">
+      <button class="btn" id="expand">Expand all</button>
+      <button class="btn" id="collapse">Collapse to sections</button>
+      <button class="btn" id="fit">Fit</button>
     </div>
     <svg id="svg"></svg>
     <div class="legend" id="legend"></div>
-    <div class="hint">drag nodes · scroll to zoom · click a node for details</div>
+    <div class="hint">click a node = details · click ▸ caret = expand/collapse · scroll = zoom · drag bg = pan</div>
   </div>
   <aside id="side">
     <header>
-      <h1>Augmented Concept Map</h1>
-      <div class="sub">Click any concept. ★ = expanded deep dive. Links open chapter pages, papers, and tools.</div>
+      <h1>Augmented Concept Tree</h1>
+      <div class="sub">The chapter's structure as a tree: <b>Chapter → sections → concepts → deep dives</b>. Top-to-bottom follows reading order (numbered). ★ = expanded deep dive. Click a node for its summary and links.</div>
     </header>
-    <div id="content"><div class="placeholder">Select a node to see its summary, prerequisites, difficulty, and links to the chapter section, the referenced papers (in this folder), external tools, and a hands-on exercise.<br><br>Use the filters to isolate a section, or search to highlight a concept.</div></div>
+    <div id="content"><div class="placeholder">Select a node to see its summary, prerequisites, difficulty, and links to the chapter page, referenced papers (in this folder), tools, and a hands-on exercise.</div></div>
   </aside>
 </div>
 <script>
-const BOOK = encodeURI("/*__BOOK_PDF__*/book.pdf");
-function pg(n){return BOOK + "#page=" + n;}
-const G = {
-  sampling:{c:"#4C9AFF",label:"Sampling"}, labeling:{c:"#42d392",label:"Labeling"},
-  imbalance:{c:"#ff8b6b",label:"Class Imbalance"}, augmentation:{c:"#b388ff",label:"Data Augmentation"}
-};
-// nodes: id,label,group,diff,star,sum,links[{k,t,u}],pre
-const N = /*__NODES__*/ [];
-// edges
-const E = /*__EDGES__*/ [];
-// physics
-const svg=document.getElementById("svg");
-const NS="http://www.w3.org/2000/svg";
-let W=svg.clientWidth,H=svg.clientHeight;
-const idx={};N.forEach((n,i)=>{idx[n.id]=n;n.x=W/2+(Math.random()-.5)*400;n.y=H/2+(Math.random()-.5)*400;n.vx=0;n.vy=0;});
-let view={x:0,y:0,k:1};
+const TREE=/*__DATA__*/{};  // injected by pipeline Stage 7
+const G={root:{c:"#9fb3cc",label:"Chapter"},sampling:{c:"#4C9AFF",label:"Sampling"},labeling:{c:"#42d392",label:"Labeling"},
+  imbalance:{c:"#ff8b6b",label:"Class Imbalance"},augmentation:{c:"#b388ff",label:"Data Augmentation"}};
+const DIFFC={Intro:"#7ee0a3",Intermediate:"#ffd98a",Advanced:"#ff9d9d"};
+const COLW=250,ROWH=40,PADX=60,PADY=46,NW=186,NH=27;
+const svg=document.getElementById("svg"),NS="http://www.w3.org/2000/svg";
 const gRoot=document.createElementNS(NS,"g");svg.appendChild(gRoot);
 const gEdges=document.createElementNS(NS,"g");gRoot.appendChild(gEdges);
 const gNodes=document.createElementNS(NS,"g");gRoot.appendChild(gNodes);
-const edgeEls=E.map(e=>{const l=document.createElementNS(NS,"line");l.setAttribute("class","edge "+e[2]);gEdges.appendChild(l);return {l,s:idx[e[0]],t:idx[e[1]]};});
-const nodeEls=N.map(n=>{
-  const g=document.createElementNS(NS,"g");g.setAttribute("class","node");
-  const c=document.createElementNS(NS,"circle");
-  const r=n.id.match(/sampling|labeling|imbalance|augmentation/)&&["sampling","labeling","imbalance","augmentation"].includes(n.id)?20:13;
-  n.r=r;c.setAttribute("r",r);c.setAttribute("fill",G[n.group].c);
-  if(n.diff==="Advanced")c.setAttribute("stroke","#ff5d5d");if(n.diff==="Intermediate")c.setAttribute("stroke","#ffd98a");if(n.diff==="Intro")c.setAttribute("stroke","#0f1420");
-  g.appendChild(c);
-  const t=document.createElementNS(NS,"text");t.setAttribute("x",r+4);t.setAttribute("y",4);t.textContent=n.label+(n.star?" ★":"");
-  g.appendChild(t);gNodes.appendChild(g);
-  g.addEventListener("click",ev=>{ev.stopPropagation();select(n);});
-  // drag
-  let dragging=false,sx,sy;
-  c.addEventListener("pointerdown",ev=>{dragging=true;n.fixed=true;sx=ev.clientX;sy=ev.clientY;c.setPointerCapture(ev.pointerId);ev.stopPropagation();});
-  c.addEventListener("pointermove",ev=>{if(!dragging)return;n.x+=(ev.clientX-sx)/view.k;n.y+=(ev.clientY-sy)/view.k;sx=ev.clientX;sy=ev.clientY;n.vx=0;n.vy=0;});
-  c.addEventListener("pointerup",ev=>{dragging=false;n.fixed=false;});
-  return {g,c,t,n};
-});
-function tick(){
-  for(let i=0;i<N.length;i++){const a=N[i];if(a.fixed)continue;
-    for(let j=0;j<N.length;j++){if(i===j)continue;const b=N[j];
-      let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+0.01,d=Math.sqrt(d2);
-      const rep=2600/d2;a.vx+=dx/d*rep;a.vy+=dy/d*rep;}}
-  E.forEach(e=>{const a=idx[e[0]],b=idx[e[1]];let dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)+.01;
-    const target=e[2]==="hier"?95:150;const f=(d-target)*0.012;
-    const fx=dx/d*f,fy=dy/d*f;if(!a.fixed){a.vx+=fx;a.vy+=fy;}if(!b.fixed){b.vx-=fx;b.vy-=fy;}});
-  N.forEach(n=>{if(n.fixed)return;n.vx+=(W/2-n.x)*0.0016;n.vy+=(H/2-n.y)*0.0016;
-    n.vx*=0.86;n.vy*=0.86;n.x+=n.vx;n.y+=n.vy;});
-  edgeEls.forEach(o=>{o.l.setAttribute("x1",o.s.x);o.l.setAttribute("y1",o.s.y);o.l.setAttribute("x2",o.t.x);o.l.setAttribute("y2",o.t.y);});
-  nodeEls.forEach(o=>{o.g.setAttribute("transform","translate("+o.n.x+","+o.n.y+")");});
-  requestAnimationFrame(tick);
+let W=1000,H=700;
+// index all nodes + parent refs
+const ALL=[];
+(function walk(n,parent){n._parent=parent;ALL.push(n);(n.children||[]).forEach(c=>walk(c,n));})(TREE,null);
+// layout (horizontal tidy tree)
+let leafY;
+function layout(n,depth){
+  n.depth=depth;n.x=PADX+depth*COLW;
+  const kids=n._collapsed?[]:(n.children||[]);
+  if(!kids.length){n.y=PADY+leafY*ROWH;leafY++;}
+  else{kids.forEach(k=>layout(k,depth+1));n.y=(kids[0].y+kids[kids.length-1].y)/2;}
 }
+function visible(){const out=[];(function w(n){out.push(n);if(!n._collapsed)(n.children||[]).forEach(w);})(TREE);return out;}
+function linkPath(a,b){const x1=a.x+NW,y1=a.y,x2=b.x,y2=b.y,mx=(x1+x2)/2;
+  return "M"+x1+","+y1+" C"+mx+","+y1+" "+mx+","+y2+" "+x2+","+y2;}
+function render(){
+  leafY=0;layout(TREE,0);
+  const vis=visible();
+  let maxd=0;vis.forEach(n=>maxd=Math.max(maxd,n.depth));
+  W=PADX+maxd*COLW+NW+60;H=PADY*2+leafY*ROWH;
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  gEdges.innerHTML="";gNodes.innerHTML="";
+  // edges
+  vis.forEach(n=>{if(!n._collapsed)(n.children||[]).forEach(c=>{const p=document.createElementNS(NS,"path");
+    p.setAttribute("class","link");p.setAttribute("d",linkPath(n,c));
+    p.setAttribute("stroke",G[c.group]?G[c.group].c:"#3c4a66");p.setAttribute("opacity",".5");gEdges.appendChild(p);});});
+  // nodes
+  vis.forEach(n=>{
+    const isRoot=n.depth===0,col=(G[n.group]||G.root).c;
+    const g=document.createElementNS(NS,"g");g.setAttribute("class","nodebox");g.setAttribute("data-id",n.id);
+    g.setAttribute("transform","translate("+n.x+","+(n.y-NH/2)+")");
+    const w=isRoot?NW:NW, h=NH;
+    const rect=document.createElementNS(NS,"rect");rect.setAttribute("class","card");
+    rect.setAttribute("width",w);rect.setAttribute("height",h);rect.setAttribute("rx",7);
+    rect.setAttribute("fill",col);rect.setAttribute("fill-opacity",isRoot?.30:.16);rect.setAttribute("stroke",col);
+    g.appendChild(rect);
+    // order badge
+    if(n.order){const bg=document.createElementNS(NS,"circle");bg.setAttribute("cx",13);bg.setAttribute("cy",h/2);bg.setAttribute("r",9);bg.setAttribute("fill",col);g.appendChild(bg);
+      const nt=document.createElementNS(NS,"text");nt.setAttribute("class","num");nt.setAttribute("x",13);nt.setAttribute("y",h/2+.5);nt.textContent=n.order;g.appendChild(nt);}
+    // label
+    const lx=n.order?28:12;
+    const t=document.createElementNS(NS,"text");t.setAttribute("class","lbl");t.setAttribute("x",lx);t.setAttribute("y",h/2+.5);
+    let lab=n.label;if(n.star)lab+=" ★";
+    t.textContent=lab.length>24?lab.slice(0,23)+"…":lab;g.appendChild(t);
+    if(n.star){t.querySelector;}
+    // difficulty dot
+    if(n.diff){const d=document.createElementNS(NS,"circle");d.setAttribute("cx",w-11);d.setAttribute("cy",h/2);d.setAttribute("r",4.5);d.setAttribute("fill",DIFFC[n.diff]||"#888");g.appendChild(d);}
+    g.addEventListener("click",e=>{e.stopPropagation();select(n);});
+    gNodes.appendChild(g);
+    // caret (expand/collapse) if has children
+    if((n.children||[]).length){const cx=n.x+NW+12,cy=n.y;
+      const cg=document.createElementNS(NS,"g");cg.setAttribute("class","caretbg");
+      const cc=document.createElementNS(NS,"circle");cc.setAttribute("cx",cx);cc.setAttribute("cy",cy);cc.setAttribute("r",9);cc.setAttribute("fill",col);cc.setAttribute("fill-opacity",".9");cg.appendChild(cc);
+      const ct=document.createElementNS(NS,"text");ct.setAttribute("class","caret");ct.setAttribute("x",cx);ct.setAttribute("y",cy+.5);ct.textContent=n._collapsed?"+":"–";cg.appendChild(ct);
+      cg.addEventListener("click",e=>{e.stopPropagation();n._collapsed=!n._collapsed;render();});
+      gEdges.appendChild(cg);}
+  });
+  if(selId)markSel();
+}
+// selection + details
+let selId=null;
+function ancestors(n){const s=new Set();let p=n;while(p){s.add(p.id);p=p._parent;}return s;}
+function markSel(){const n=ALL.find(x=>x.id===selId);if(!n)return;const keep=ancestors(n);(n.children||[]).forEach(c=>keep.add(c.id));
+  gNodes.querySelectorAll(".nodebox").forEach(el=>{const id=el.getAttribute("data-id");
+    el.classList.toggle("sel",id===selId);el.classList.toggle("dim",!keep.has(id));});}
+function select(n){selId=n.id;markSel();
+  let h="<h2><span class='grp' style='background:"+(G[n.group]||G.root).c+"'></span>"+n.label+(n.star?" <span style='color:#ffd34e'>★</span>":"")+"</h2>";
+  if(n.order)h+="<span class='badge' style='background:#222c42;color:#9fb0c8'>#"+n.order+" in reading order</span>";
+  if(n.diff)h+="<span class='badge b-"+n.diff+"'>"+n.diff+"</span>";
+  h+="<span class='badge' style='background:#222c42;color:#9fb0c8'>"+(G[n.group]||G.root).label+"</span>";
+  if(n.sum)h+="<p class='s'>"+n.sum+"</p>";
+  if(n.pre)h+="<div class='field'>Prerequisites</div><div class='pre'>"+n.pre+"</div>";
+  if(n.links&&n.links.length){h+="<div class='field'>Links</div><div class='links'>";
+    n.links.forEach(l=>h+="<a href='"+l[2]+"' target='_blank' rel='noopener'><span class='k'>"+l[0]+"</span>"+l[1]+"</a>");h+="</div>";}
+  if(n.star)h+="<div class='field'>Deep dive</div><div class='pre'>Full expansion (mechanism, math, hands-on) is in <b>Chapter4-Augmented-Summary.md</b>, Part 2.</div>";
+  if((n.children||[]).length)h+="<div class='pre' style='margin-top:14px'>Contains "+n.children.length+" sub-topic"+(n.children.length>1?"s":"")+". Use the ▸ caret on the node to expand/collapse.</div>";
+  document.getElementById("content").innerHTML=h;}
+
+// view transform
+let view={x:0,y:0,k:1};
 function applyView(){gRoot.setAttribute("transform","translate("+view.x+","+view.y+") scale("+view.k+")");}
-// pan/zoom
-let pan=false,px,py;
-svg.addEventListener("pointerdown",ev=>{pan=true;px=ev.clientX;py=ev.clientY;svg.classList.add("grabbing");});
-svg.addEventListener("pointermove",ev=>{if(!pan)return;view.x+=ev.clientX-px;view.y+=ev.clientY-py;px=ev.clientX;py=ev.clientY;applyView();});
+function fit(){const vw=svg.clientWidth,vh=svg.clientHeight;const k=Math.min(vw/W,vh/H)*0.97;view.k=k;view.x=(vw-W*k)/2;view.y=Math.max(8,(vh-H*k)/2);applyView();}
+let pan=false,px,py,moved=false;
+svg.addEventListener("pointerdown",e=>{pan=true;moved=false;px=e.clientX;py=e.clientY;svg.classList.add("grabbing");});
+svg.addEventListener("pointermove",e=>{if(!pan)return;moved=true;view.x+=e.clientX-px;view.y+=e.clientY-py;px=e.clientX;py=e.clientY;applyView();});
 window.addEventListener("pointerup",()=>{pan=false;svg.classList.remove("grabbing");});
-svg.addEventListener("wheel",ev=>{ev.preventDefault();const s=ev.deltaY<0?1.12:0.89;
-  const mx=ev.clientX,my=ev.clientY;view.x=mx-(mx-view.x)*s;view.y=my-(my-view.y)*s;view.k*=s;applyView();},{passive:false});
-// sidebar
-const content=document.getElementById("content");
-function select(n){
-  nodeEls.forEach(o=>o.g.classList.remove("dim"));
-  const neigh=new Set([n.id]);E.forEach(e=>{if(e[0]===n.id)neigh.add(e[1]);if(e[1]===n.id)neigh.add(e[0]);});
-  nodeEls.forEach(o=>{if(!neigh.has(o.n.id))o.g.classList.add("dim");});
-  let h=`<h2><span class="grp" style="background:${G[n.group].c}"></span>${n.label}${n.star?' <span style="color:#ffd34e">★</span>':''}</h2>`;
-  h+=`<span class="badge b-${n.diff}">${n.diff}</span><span class="badge" style="background:#222c42;color:#9fb0c8">${G[n.group].label}</span>`;
-  h+=`<p class="s">${n.sum}</p>`;
-  if(n.pre){h+=`<div class="field">Prerequisites</div><div class="pre">${n.pre}</div>`;}
-  h+=`<div class="field">Links</div><div class="links">`;
-  n.links.forEach(l=>{h+=`<a href="${l[2]}" target="_blank" rel="noopener"><span class="k">${l[0]}</span>${l[1]}</a>`;});
-  h+=`</div>`;
-  if(n.star){h+=`<div class="field">Deep dive</div><div class="pre">Full expansion (mechanism, math, hands-on) is in <b>Chapter4-Augmented-Summary.md</b>, Part 2.</div>`;}
-  content.innerHTML=h;
-}
-svg.addEventListener("click",()=>{nodeEls.forEach(o=>o.g.classList.remove("dim"));});
-// filters + legend + search
-const filters=document.getElementById("filters");
-Object.keys(G).forEach(k=>{const lab=document.createElement("label");
-  lab.innerHTML=`<input type="checkbox" checked data-g="${k}"><span class="grp" style="background:${G[k].c}"></span>${G[k].label}`;
-  filters.appendChild(lab);});
-filters.addEventListener("change",()=>{const on={};filters.querySelectorAll("input").forEach(i=>on[i.dataset.g]=i.checked);
-  nodeEls.forEach(o=>o.g.style.display=on[o.n.group]?"":"none");
-  edgeEls.forEach(o=>o.l.style.display=(on[o.s.group]&&on[o.t.group])?"":"none");});
+svg.addEventListener("click",e=>{if(!moved){selId=null;gNodes.querySelectorAll(".nodebox").forEach(el=>el.classList.remove("dim","sel"));}});
+svg.addEventListener("wheel",e=>{e.preventDefault();const s=e.deltaY<0?1.12:.89;const rc=svg.getBoundingClientRect();const mx=e.clientX-rc.left,my=e.clientY-rc.top;view.x=mx-(mx-view.x)*s;view.y=my-(my-view.y)*s;view.k*=s;applyView();},{passive:false});
+
+// controls
+function setCollapsed(depthAtLeast){ALL.forEach(n=>{n._collapsed=(n.children&&n.children.length && n.depth!==undefined && n.depth>=depthAtLeast);});}
+document.getElementById("expand").addEventListener("click",()=>{ALL.forEach(n=>n._collapsed=false);render();fit();});
+document.getElementById("collapse").addEventListener("click",()=>{leafY=0;layout(TREE,0);ALL.forEach(n=>{if(n.depth===1&&(n.children||[]).length)n._collapsed=true;});render();fit();});
+document.getElementById("fit").addEventListener("click",fit);
 document.getElementById("search").addEventListener("input",e=>{const q=e.target.value.toLowerCase();
-  nodeEls.forEach(o=>{const m=!q||o.n.label.toLowerCase().includes(q)||o.n.sum.toLowerCase().includes(q);
-    o.g.classList.toggle("dim",q&&!m);});});
+  gNodes.querySelectorAll(".nodebox").forEach(el=>{const n=ALL.find(x=>x.id===el.getAttribute("data-id"));
+    const m=!q||(n.label.toLowerCase().includes(q))||(n.sum&&n.sum.toLowerCase().includes(q));el.classList.toggle("dim",q&&!m);});});
+window.addEventListener("resize",fit);
 document.getElementById("legend").innerHTML=
- `<b>Node border</b> = difficulty: <span style="color:#7ee0a3">Intro</span> · <span style="color:#ffd98a">Intermediate</span> · <span style="color:#ff9d9d">Advanced</span> · ★ deep dive<br>`+
- `<b>Edges</b>: <span class="ekey" style="border-color:#46556f"></span>structure `+
- `<span class="ekey" style="border-color:#42d392"></span>forward `+
- `<span class="ekey" style="border-color:#ff8b6b"></span>lateral `+
- `<span class="ekey" style="border-color:#b388ff"></span>deep dive`;
-window.addEventListener("resize",()=>{W=svg.clientWidth;H=svg.clientHeight;});
-// seed root positions
-["sampling","labeling","imbalance","augmentation"].forEach((id,i)=>{const a=(i/4)*Math.PI*2;idx[id].x=W/2+Math.cos(a)*180;idx[id].y=H/2+Math.sin(a)*180;});
-applyView();tick();
+  "<b>Tree</b>: Chapter → sections → concepts → deep dives. Numbers = reading order (top→bottom).<br>"
+  +"<b>Difficulty dot</b>: <span class='dot' style='background:#7ee0a3'></span>Intro <span class='dot' style='background:#ffd98a'></span>Intermediate <span class='dot' style='background:#ff9d9d'></span>Advanced · ★ deep dive<br>"
+  +"<b>Color</b> = section. Click ▸ caret to fold a branch.";
+render();fit();
 </script>
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         

@@ -60,7 +60,7 @@ Dispatch all Stage-4 output to the **`expansion-verifier`** sub-agent. It indepe
 - **(D) Verification pass** — Stage 5; required when expansions will be relied upon.
 
 ### Stage 7 — Visual generation
-Render `ChapterN-Concept-Graph.html`: an interactive force/cluster graph. Nodes are color-coded by section and sized by importance; difficulty shown via badge. Clicking a node opens a panel with the summary blurb and live links: jump to the chapter section, open the referenced paper (in-folder PDF or URL), open external tools/tutorials, and the hands-on exercise. Edges render the association type. Cross-chapter edges (add-on C) are dashed.
+Render `ChapterN-Concept-Graph.html` as a **collapsible hierarchical tree** that mirrors the chapter's structure: root (chapter) → sections → concepts → deep dives. The tree is laid out left-to-right; **top-to-bottom follows reading order** (each concept carries its order number), so the chapter's sequence and its nesting are both explicit. Nodes are colored by section, carry a difficulty dot (Intro/Intermediate/Advanced), and mark deep dives with a star. Clicking a node opens a panel with the summary, prerequisites, difficulty, and live links (chapter page, in-folder paper PDFs, tools, hands-on); clicking a node's caret folds/unfolds that branch. The template takes a single `/*__DATA__*/` injection point: a nested TREE of `{id,label,group,order?,diff?,star?,sum?,pre?,links?,children?}`.
 
 ### Stage 8 — Assembly & QA
 Stitch Stages 2–6 into the Markdown deliverable, embed the concept JSON, and run a final consistency check (every association has a target; every out-of-scope concept has an expansion or an explicit `⚠`; every external link resolved or flagged).
