@@ -21,6 +21,7 @@ Version 1.0. Designed for technical non-fiction (initially *Designing Machine Le
 2. `ChapterN-Concept-Graph.html` — interactive concept graph (nodes = concepts/references; edges = associations; clickable links).
 3. `ChapterN-concepts.json` — machine-readable concept records (feeds the cross-chapter graph and future runs).
 4. `ChapterN-references.md` — annotated bibliography of every cited source (this is the artifact already produced for Ch 4).
+5. *(opt-in, Stage 6b)* `ChapterN-Source-Summaries.html` + `.md` — per-source summaries focused on the tie-back to the chapter, deep-linked from the tree.
 
 ---
 
@@ -59,8 +60,27 @@ Dispatch all Stage-4 output to the **`expansion-verifier`** sub-agent. It indepe
 - **(C) Cross-chapter concept graph** — merge this chapter's `concepts.json` into a running book-level graph so concepts link across chapters (backward/forward associations resolve to real nodes).
 - **(D) Verification pass** — Stage 5; required when expansions will be relied upon.
 
+### Stage 6b — Source summaries (OPT-IN)
+Off by default; run only if the user opts in (SKILL clarification #5). Goal: fetch the chapter's external sources and summarize each with a focus on **how it ties back to the chapter** — not a generic abstract.
+
+1. **Classify every cited source by type** and choose a fetch strategy per the table below.
+2. **Dispatch fetchable sources in batches** to the `source-summarizer` sub-agent. Each output block leads with the tie-back, marks `fetched: yes/partial/no`, and never fabricates content or links.
+3. **Render a companion** `ChapterN-Source-Summaries.html` (one `#anchor` section per source, styled to match the tree) plus the underlying `.md`. Stage 7 then deep-links the tree into it.
+
+**Reference-type strategy** (from a whole-book audit; the book's `oreil.ly` links bot-block, so classify from the citation text and fetch the resolved destination):
+
+| Type | Fetch | Extract |
+|---|---|---|
+| arXiv preprint | `arxiv.org/abs/<id>` (id via WebSearch) | method + result the chapter relies on |
+| Academic paper / journal (DOI) | resolve DOI; OA PDF/landing; paywalled → abstract only | the specific claim/technique cited |
+| News / industry article | WebFetch; JS shell → Claude-in-Chrome | the exact statistic the book quotes |
+| Blog post | WebFetch (usually static) | the practitioner takeaway |
+| Docs / tool / dataset | WebFetch the page | what it is + how the chapter uses it |
+| Talk / video | do not scrape transcript | summarize from title/speaker/context; `fetched: no` |
+| Book | do not fetch | one-line scope + recommending chapter |
+
 ### Stage 7 — Visual generation
-Render `ChapterN-Concept-Graph.html` as a **collapsible hierarchical tree** that mirrors the chapter's structure: root (chapter) → sections → concepts → deep dives. The tree is laid out left-to-right; **top-to-bottom follows reading order** (each concept carries its order number), so the chapter's sequence and its nesting are both explicit. Nodes are colored by section, carry a difficulty dot (Intro/Intermediate/Advanced), and mark deep dives with a star. Clicking a node opens a panel with the summary, prerequisites, difficulty, and live links (chapter page, in-folder paper PDFs, tools, hands-on); clicking a node's caret folds/unfolds that branch. The template takes a single `/*__DATA__*/` injection point: a nested TREE of `{id,label,group,order?,diff?,star?,sum?,pre?,links?,children?}`.
+Render `ChapterN-Concept-Graph.html` as a **collapsible hierarchical tree** that mirrors the chapter's structure: root (chapter) → sections → concepts → deep dives. The tree is laid out left-to-right; **top-to-bottom follows reading order** (each concept carries its order number), so the chapter's sequence and its nesting are both explicit. Nodes are colored by section, carry a difficulty dot (Intro/Intermediate/Advanced), and mark deep dives with a star. Clicking a node opens a panel with the summary, prerequisites, difficulty, and live links (chapter page, in-folder paper PDFs, tools, hands-on); clicking a node's caret folds/unfolds that branch. The template takes a single `/*__DATA__*/` injection point: a nested TREE of `{id,label,group,order?,diff?,star?,sum?,pre?,links?,children?}`. **If Stage 6b produced source summaries**, add a top-bar **Source summaries** link to the companion file and a per-node **📄 Sources** link to `ChapterN-Source-Summaries.html#<source-id>`.
 
 ### Stage 8 — Assembly & QA
 Stitch Stages 2–6 into the Markdown deliverable, embed the concept JSON, and run a final consistency check (every association has a target; every out-of-scope concept has an expansion or an explicit `⚠`; every external link resolved or flagged).
@@ -99,6 +119,7 @@ Stitch Stages 2–6 into the Markdown deliverable, embed the concept JSON, and r
 |---|---|---|
 | `ml-concept-expander` | `/agents/ml-concept-expander.md` | Stage 4 — deep, cited expansions of out-of-scope concepts. |
 | `expansion-verifier` | `/agents/expansion-verifier.md` | Stage 5 — independent fact/citation/URL verification. |
+| `source-summarizer` | `/agents/source-summarizer.md` | Stage 6b (opt-in) — fetch external sources and summarize each with a tie-back to the chapter. |
 
 Both are dispatched via the Agent tool. For non-ML books, clone `ml-concept-expander` and swap the domain framing (e.g., `bio-concept-expander`).
 

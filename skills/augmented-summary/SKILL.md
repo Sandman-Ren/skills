@@ -23,6 +23,7 @@ Produce an Augmented Summary for a chapter by following the pipeline in `PROCESS
 2. Recursion depth for references — direct citations only (default) vs. deeper?
 3. Which references to include — all, or substantive papers only?
 4. Output format(s) — Markdown is default; add interactive HTML graph? Add-ons (prereq tags, exercises, cross-chapter graph, verification pass)?
+5. **Source summaries (opt-in)** — "Do you also want summaries of the chapter's external sources (papers, blogs, articles, etc.)? I'll fetch what's fetchable and summarize each with a focus on how it ties back to the chapter." If yes, confirm scope (all sources vs. substantive papers only) and companion format (HTML companion is default; Markdown or PDF also fine).
 
 ## Procedure
 1. **Parse structure** (Stage 1): extract section order + headings + page numbers, all footnotes/citations, and "for a comprehensive review, see…" pointers. For PDFs, use `pypdf` (`pip install pypdf --break-system-packages`).
@@ -31,11 +32,12 @@ Produce an Augmented Summary for a chapter by following the pipeline in `PROCESS
 4. **Expand** (Stage 4): dispatch each out-of-scope concept to the `ml-concept-expander` sub-agent (`agents/ml-concept-expander.md`). One batch per call.
 5. **Verify** (Stage 5): dispatch expansions to the `expansion-verifier` sub-agent (independent invocation). Correct or flag `⚠` failures.
 6. **Enrich** (Stage 6): add prerequisites + difficulty per concept; add a hands-on exercise per major concept; merge `concepts.json` into the book-level graph.
-7. **Visualize** (Stage 7): render `ChapterN-Concept-Graph.html` — interactive concept graph with clickable links to sections, papers, tools, and exercises. Base it on `templates/concept-graph.template.html`.
-8. **Assemble & QA** (Stage 8): build `ChapterN-Augmented-Summary.md` from `templates/augmented-summary-template.md`, embed `concepts.json`, and run the definition-of-done checks.
+7. **Source summaries — OPT-IN** (Stage 6b, only if the user said yes in clarification #5): classify every cited source by type, then dispatch fetchable ones (batched) to the `source-summarizer` sub-agent (`agents/source-summarizer.md`). Each summary leads with how the source ties back to the chapter concept. Render the result as a companion `ChapterN-Source-Summaries.html` (one anchored section per source) plus the underlying `.md`. See PROCESS-SPEC.md "Reference-type strategy" for the per-type fetch approach. The sub-agent never fabricates content or links and marks each source `fetched: yes/partial/no`.
+8. **Visualize** (Stage 7): render `ChapterN-Concept-Graph.html` from `templates/concept-graph.template.html`. If source summaries exist, wire them in: a top-bar **Source summaries** link to the companion file, and a per-node **📄 Sources** link to `ChapterN-Source-Summaries.html#<source-id>`.
+9. **Assemble & QA** (Stage 8): build `ChapterN-Augmented-Summary.md` from `templates/augmented-summary-template.md`, embed `concepts.json`, and run the definition-of-done checks.
 
 ## Outputs
-`ChapterN-Augmented-Summary.md`, `ChapterN-Concept-Graph.html`, `ChapterN-concepts.json`, `ChapterN-references.md`.
+`ChapterN-Augmented-Summary.md`, `ChapterN-Concept-Graph.html`, `ChapterN-concepts.json`, `ChapterN-references.md`, and (if opted in) `ChapterN-Source-Summaries.html` + `.md`.
 
 ## Definition of done
 See PROCESS-SPEC.md "Quality bar". Key checks: order fidelity; every concept has ≥1 association; every out-of-scope concept verified-or-flagged; every external link resolved-or-flagged; graph opens standalone with working links.
@@ -43,3 +45,4 @@ See PROCESS-SPEC.md "Quality bar". Key checks: order fidelity; every concept has
 ## Notes
 - For non-ML domains, clone `ml-concept-expander` and reframe the domain (e.g., `bio-concept-expander`).
 - The verifier MUST be a separate sub-agent invocation from the expander to preserve independence.
+- Source summaries (Stage 6b) are OFF by default — always ask first (clarification #5), because fetching many sources is slow and some are paywalled/bot-blocked. `ml-concept-expander` (Stage 4) expands *concepts the chapter underexplains*; `source-summarizer` (Stage 6b) summarizes *specific cited sources* with a tie-back focus — keep them distinct.
